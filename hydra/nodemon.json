@@ -1,0 +1,9 @@
+{
+  "watch": ["osc_ws_proxy.js", "osc_ws_proxy2.js", "osc_ws_proxy3.js"],
+  "ext": "js,json",
+  "ignore": ["node_modules/*", "*.log"],
+  "delay": 1000,
+  "env": {
+    "NODE_ENV": "development"
+  }
+}

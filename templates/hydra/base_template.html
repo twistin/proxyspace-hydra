@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hydra - Texto Mutable</title>
+  <script src="https://cdn.jsdelivr.net/npm/hydra-synth@1.3.0/dist/hydra-synth.min.js"></script>
+  <script src="../../hydra/js/osc-client.js"></script>
+  <style>
+    :root {
+      color-scheme: dark;
+    }
+
+    body,
+    html {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #050505;
+      font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+    }
+
+    #hydra-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      display: block;
+    }
+
+    #hud {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      padding: 16px 20px;
+      border-radius: 12px;
+      background: rgba(10, 10, 12, 0.72);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+      backdrop-filter: blur(12px);
+      color: #f5f5f5;
+      min-width: 280px;
+      z-index: 20;
+    }
+
+    #hud h1 {
+      font-size: 15px;
+      letter-spacing: 0.12em;
+      font-weight: 600;
+      text-transform: uppercase;
+      margin: 0 0 12px;
+      color: #b7faff;
+    }
+
+    .status-line {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      margin-bottom: 6px;
+      gap: 16px;
+    }
+
+    .status-line strong {
+      font-weight: 600;
+      color: #94dfff;
+    }
+
+    .value {
+      font-family: "JetBrains Mono", "Fira Code", monospace;
+      font-size: 13px;
+      min-width: 60px;
+      padding: 2px 6px;
+      border-radius: 6px;
+      text-align: right;
+      transition: transform 0.12s ease, color 0.12s ease, background 0.12s ease;
+    }
+
+    .value.rhythm {
+      color: #ff97ff;
+      background: rgba(255, 151, 255, 0.08);
+    }
+
+    .value.bass {
+      color: #7affa1;
+      background: rgba(122, 255, 161, 0.08);
+    }
+
+    .value.high {
+      color: #79c4ff;
+      background: rgba(121, 196, 255, 0.08);
+    }
+
+    .scene-indicator {
+      margin-top: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 20px;
+      font-size: 13px;
+    }
+
+    .scene-indicator span {
+      color: #ffd479;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    #scene-buttons {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      display: flex;
+      gap: 8px;
+      z-index: 20;
+    }
+
+    #scene-buttons button {
+      font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+      font-size: 13px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(12, 14, 20, 0.75);
+      color: #f7f7f7;
+      cursor: pointer;
+      transition: transform 0.2s ease, border 0.2s ease, background 0.2s ease;
+    }
+
+    #scene-buttons button[data-active="true"] {
+      border-color: #ffd479;
+      background: rgba(255, 212, 121, 0.18);
+      color: #ffd479;
+      transform: translateY(-2px);
+    }
+
+    #scene-buttons button:hover {
+      border-color: rgba(255, 255, 255, 0.35);
+    }
+
+    #word-overlay {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      pointer-events: none;
+      z-index: 12;
+      mix-blend-mode: difference;
+      transition: opacity 0.3s ease;
+    }
+
+    #word-overlay[data-enabled="false"] {
+      opacity: 0;
+    }
+
+    #word-overlay span {
+      font-size: clamp(48px, 12vw, 140px);
+      font-weight: 700;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: rgba(245, 245, 245, 0.38);
+      opacity: 0;
+      transform: scale(0.92);
+      transition: opacity 0.24s ease, transform 0.28s ease;
+    }
+
+    #word-overlay span.active {
+      opacity: 1;
+      transform: scale(1.04);
+    }
+
+    #text-scene {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 14;
+      opacity: 0;
+      transition: opacity 0.45s ease;
+      overflow: hidden;
+    }
+
+    #text-scene[data-active="true"] {
+      opacity: 1;
+    }
+
+    #text-scene span {
+      position: absolute;
+      font-size: clamp(26px, 4vw, 82px);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      white-space: nowrap;
+      mix-blend-mode: screen;
+      transform: translate(-50%, -50%) scale(0.85) rotate(-1deg);
+      opacity: 0;
+      animation: dualityFade 8s ease-in-out forwards;
+      text-shadow: 0 0 18px rgba(0, 0, 0, 0.35);
+    }
+
+    @keyframes dualityFade {
+      0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.8) rotate(-4deg);
+      }
+      15% {
+        opacity: 0.8;
+        transform: translate(-50%, -50%) scale(1.02) rotate(2deg);
+      }
+      55% {
+        opacity: 0.9;
+        transform: translate(-50%, -50%) scale(1) rotate(0deg);
+      }
+      100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(1.1) rotate(4deg);
+      }
+    }
+
+    #log {
+      position: fixed;
+      bottom: 18px;
+      left: 20px;
+      font-family: "JetBrains Mono", "Fira Code", monospace;
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      color: rgba(230, 230, 230, 0.55);
+      z-index: 20;
+      max-width: 72ch;
+      opacity: 0.82;
+    }
+  </style>
+</head>
+
+<body>
+  <canvas id="hydra-canvas"></canvas>
+
+  <div id="hud">
+    <h1>Hydra - Texto mutable</h1>
+
+    <div class="status-line">
+      <strong>Estado</strong>
+      <span id="status-label">Inactivo</span>
+    </div>
+
+    <div class="status-line">
+      <span>Ritmo</span>
+      <span id="value-rhythm" class="value rhythm">0.1000</span>
+    </div>
+
+    <div class="status-line">
+      <span>Bajo</span>
+      <span id="value-bass" class="value bass">0.1000</span>
+    </div>
+
+    <div class="status-line">
+      <span>Agudo</span>
+      <span id="value-high" class="value high">0.1000</span>
+    </div>
+
+    <div class="scene-indicator">
+      <span>Escena</span>
+      <strong id="scene-label">0 · Lienzo base</strong>
+    </div>
+  </div>
+
+  <div id="scene-buttons">
+    <button type="button" data-scene="0" data-active="true">Escena 0</button>
+    <button type="button" data-scene="1">Escena 1</button>
+    <button type="button" data-scene="2">Escena 2</button>
+    <button type="button" data-scene="3">Escena 3</button>
+  </div>
+
+  <div id="word-overlay" data-enabled="true">
+    <span id="word">pulse</span>
+  </div>
+
+  <div id="text-scene" data-active="false"></div>
+
+  <div id="log"></div>
+
+  <script>
+    const canvas = document.getElementById('hydra-canvas');
+    const hudStatus = document.getElementById('status-label');
+    const valueRhythm = document.getElementById('value-rhythm');
+    const valueBass = document.getElementById('value-bass');
+    const valueHigh = document.getElementById('value-high');
+    const sceneLabel = document.getElementById('scene-label');
+    const wordContainer = document.getElementById('word-overlay');
+    const wordOverlay = document.getElementById('word');
+    const textSceneOverlay = document.getElementById('text-scene');
+    const logElement = document.getElementById('log');
+  const sceneButtons = Array.from(document.querySelectorAll('#scene-buttons button'));
+
+  const mapLevel = (value, offset, scale) => Math.max(0, value - offset) * scale;
+
+    const hydra = new Hydra({
+      canvas,
+      detectAudio: false,
+      width: window.innerWidth,
+      height: window.innerHeight
+    });
+
+    window.addEventListener('resize', () => {
+      hydra.setResolution(window.innerWidth, window.innerHeight);
+    });
+
+    const WORDS = [
+      'pulse',
+      'vector',
+      'drift',
+      'grain',
+      'echo',
+      'flux',
+      'fractal',
+      'mirror',
+      'trace',
+      'drive',
+      'glow',
+      'split'
+    ];
+
+  const textures = new Map();
+  const HTTP_PROTOCOL = /^https?:/i;
+    const DUALITY_LINES = [
+      'Lo inteligible <- > lo sensible',
+      'el devenir <-> el ser'
+    ];
+    const DUALITY_COLORS = ['#8aa9ff', '#4c63ff', '#7bc4ff', '#94f3ff', '#d8b7ff', '#a7fbff'];
+    let dualityTimer = null;
+
+    function loadTexture(key, urlOrUrls) {
+      const candidates = Array.isArray(urlOrUrls) ? urlOrUrls : [urlOrUrls];
+
+      const attemptLoad = (index = 0) => {
+        const candidate = candidates[index];
+        if (!candidate) {
+          return Promise.reject(new Error(`No se pudo cargar la textura ${key}`));
+        }
+
+        let resolved;
+        try {
+          resolved = new URL(candidate, window.location.href).href;
+        } catch (error) {
+          resolved = candidate;
+        }
+
+        if (resolved.startsWith('file://')) {
+          logMessage('⚠️ Sirve este archivo vía http:// para habilitar texturas locales.');
+          if (index + 1 < candidates.length) {
+            return attemptLoad(index + 1);
+          }
+          return Promise.reject(new Error(`No se pudo cargar la textura ${key} (file:// no soportado)`));
+        }
+
+        const needsFetch = HTTP_PROTOCOL.test(resolved);
+        const parsedUrl = needsFetch ? new URL(resolved) : null;
+        const sameOrigin = parsedUrl ? parsedUrl.origin === window.location.origin : true;
+
+        return new Promise((resolve, reject) => {
+          const img = new Image();
+
+          if (!sameOrigin) {
+            img.crossOrigin = 'anonymous';
+          }
+
+          const cleanupObjectUrl = () => {
+            if (img.dataset && img.dataset.objectUrl) {
+              URL.revokeObjectURL(img.dataset.objectUrl);
+              delete img.dataset.objectUrl;
+            }
+          };
+
+          img.onload = () => {
+            cleanupObjectUrl();
+            textures.set(key, img);
+            logMessage(`Textura cargada: ${key} ← ${resolved}`);
+            resolve(img);
+          };
+
+          img.onerror = () => {
+            cleanupObjectUrl();
+            logMessage(`⚠️ Textura ausente: ${resolved}`);
+            console.warn(`[Hydra] No se pudo cargar la textura ${resolved}`);
+            reject(new Error(`No se pudo cargar la textura ${resolved}`));
+          };
+
+          if (needsFetch && !sameOrigin) {
+            fetch(resolved, { mode: 'cors' })
+              .then((response) => {
+                if (!response.ok) {
+                  throw new Error(`HTTP ${response.status}`);
+                }
+                return response.blob();
+              })
+              .then((blob) => {
+                const objectUrl = URL.createObjectURL(blob);
+                img.dataset.objectUrl = objectUrl;
+                img.src = objectUrl;
+              })
+              .catch((error) => {
+                cleanupObjectUrl();
+                logMessage(`⚠️ Error al recuperar textura: ${resolved}`);
+                console.warn(`[Hydra] No se pudo cargar la textura ${resolved}`, error);
+                reject(error);
+              });
+          } else {
+            if (sameOrigin) {
+              logMessage(`Intentando textura: ${resolved}`);
+            }
+            img.src = resolved;
+          }
+        }).catch((error) => {
+          if (index + 1 < candidates.length) {
+            return attemptLoad(index + 1);
+          }
+          return Promise.reject(error);
+        });
+      };
+
+      return attemptLoad();
+    }
+
+    function softUpdate(element, value, fractionDigits = 4) {
+      const rounded = value.toFixed(fractionDigits);
+      element.textContent = rounded;
+      element.style.transform = `scale(${1 + value * 0.12})`;
+    }
+
+    function logMessage(text) {
+      const time = new Date().toLocaleTimeString();
+      logElement.textContent = `[${time}] ${text}`;
+    }
+
+    if (window.location.protocol === 'file:') {
+      logMessage('⚠️ Abre este archivo mediante un servidor HTTP (ej. npx http-server) para usar texturas.');
+    }
+
+    let nextWordAt = 0;
+
+    function bumpWord(intensity) {
+      if (wordContainer.dataset.enabled !== 'true') return;
+      const now = performance.now();
+      if (intensity < 0.25) return;
+      if (now < nextWordAt) return;
+
+      const word = WORDS[Math.floor(Math.random() * WORDS.length)];
+      wordOverlay.textContent = word;
+      wordOverlay.classList.remove('active');
+      requestAnimationFrame(() => {
+        wordOverlay.classList.add('active');
+      });
+
+      const cooldown = 350 + (1 - Math.min(intensity, 1)) * 850;
+      nextWordAt = now + cooldown;
+    }
+
+    function spawnDualityLabel(initialBurst = false) {
+      if (textSceneOverlay.dataset.active !== 'true') return;
+      const span = document.createElement('span');
+      span.textContent = DUALITY_LINES[Math.floor(Math.random() * DUALITY_LINES.length)];
+
+      const x = 10 + Math.random() * 80;
+      const y = 10 + Math.random() * 80;
+      span.style.left = `${x}%`;
+      span.style.top = `${y}%`;
+      span.style.color = DUALITY_COLORS[Math.floor(Math.random() * DUALITY_COLORS.length)];
+  span.style.fontSize = `${26 + Math.random() * 60}px`;
+      span.style.animationDuration = `${6 + Math.random() * 4}s`;
+      span.style.filter = `hue-rotate(${Math.floor(Math.random() * 120)}deg)`;
+
+      textSceneOverlay.appendChild(span);
+
+      if (!initialBurst) {
+        span.style.animationDelay = `${Math.random() * 1.2}s`;
+      }
+
+      window.setTimeout(() => {
+        span.remove();
+      }, 10000);
+    }
+
+    function startDualitiesScene() {
+      stopDualitiesScene();
+      wordContainer.dataset.enabled = 'false';
+      textSceneOverlay.dataset.active = 'true';
+      for (let i = 0; i < 6; i += 1) {
+        spawnDualityLabel(true);
+      }
+      dualityTimer = window.setInterval(() => {
+        spawnDualityLabel();
+      }, 900);
+    }
+
+    function stopDualitiesScene() {
+      if (dualityTimer !== null) {
+        clearInterval(dualityTimer);
+        dualityTimer = null;
+      }
+      Array.from(textSceneOverlay.children).forEach((node) => node.remove());
+      textSceneOverlay.dataset.active = 'false';
+    }
+
+    function markSceneButton(index) {
+      sceneButtons.forEach((button) => {
+        const isActive = Number(button.dataset.scene) === index;
+        button.dataset.active = isActive ? 'true' : 'false';
+      });
+    }
+
+    const WS_URL = 'ws://127.0.0.1:8080';
+
+    const bridge = createOSCBridge({
+      url: WS_URL,
+      autoStart: false,
+      endpoints: [
+        { address: '/sc/rhythm', key: 'rhythm', initial: 0.1, smoothing: 0.18, min: 0, max: 1 },
+        { address: '/sc/bass', key: 'bass', initial: 0.1, smoothing: 0.22, min: 0, max: 1 },
+        { address: '/sc/high', key: 'high', initial: 0.1, smoothing: 0.15, min: 0, max: 1 },
+        {
+          address: '/sc/scene',
+          key: 'scene',
+          initial: 0,
+          smoothing: 1,
+          min: 0,
+          max: 3,
+          transform: (_, raw) => (typeof raw === 'number' ? Math.round(raw) : 0)
+        }
+      ]
+    });
+
+    bridge.onStatus((state) => {
+      const labels = {
+        idle: 'Inactivo',
+        connecting: 'Conectando',
+        connected: 'Conectado',
+        disconnected: 'Desconectado',
+        error: 'Error'
+      };
+
+      hudStatus.textContent = labels[state] || state;
+      hudStatus.style.color = state === 'connected' ? '#7affa1' : '#ffd479';
+    });
+
+    bridge.on('rhythm', (value) => {
+      softUpdate(valueRhythm, value);
+      bumpWord(value);
+    });
+
+    bridge.on('bass', (value) => {
+      softUpdate(valueBass, value);
+    });
+
+    bridge.on('high', (value) => {
+      softUpdate(valueHigh, value);
+    });
+
+  const rhythm = () => bridge.getValue('rhythm', 0.1);
+  const bass = () => bridge.getValue('bass', 0.1);
+  const high = () => bridge.getValue('high', 0.1);
+
+  const loudRhythm = () => mapLevel(rhythm(), 0.08, 6);
+  const loudBass = () => mapLevel(bass(), 0.1, 5.5);
+  const loudHigh = () => mapLevel(high(), 0.05, 7);
+
+    const scenes = [
+      {
+        name: 'Lienzo base',
+        activate() {
+          osc(() => 6 + loudRhythm() * 3.5, () => 0.05 + loudHigh() * 0.05, () => 0.7 + loudBass() * 0.45)
+            .color(() => 0.55 + loudRhythm() * 0.25, () => 0.28 + loudBass() * 0.4, () => 0.75 + loudHigh() * 0.2)
+            .rotate(() => time * 0.1 + loudRhythm() * 0.4)
+            .modulateRotate(noise(() => 2.5 + loudBass() * 4), () => 0.2 + loudRhythm() * 0.35)
+            .out(o0);
+
+          src(o0)
+            .mult(voronoi(() => 2 + loudBass() * 10, 0.25, 0.6).brightness(() => -0.25 + loudRhythm() * 0.45))
+            .add(src(o0).scale(() => 1 + loudHigh() * 0.02), () => 0.25 + loudHigh() * 0.18)
+            .out(o1);
+        }
+      },
+      {
+        name: 'Anillos difraccion',
+        activate() {
+          osc(() => 12 + loudRhythm() * 6, () => 0.04 + loudBass() * 0.05)
+            .kaleid(() => 3 + Math.floor(loudHigh() * 4) % 8)
+            .rotate(() => time * 0.08 + loudBass() * 0.25)
+            .modulateScale(shape(3, 0.5, () => 0.3 + loudRhythm() * 0.6), () => 0.2 + loudHigh() * 0.7)
+            .color(() => 0.4 + loudRhythm() * 0.4, () => 0.22 + loudBass() * 0.35, () => 0.55 + loudHigh() * 0.45)
+            .out(o0);
+
+          src(o0)
+            .diff(gradient(() => 0.2 + loudRhythm() * 0.8).colorama(() => 0.25 + loudHigh() * 0.6))
+            .modulate(o0, () => 0.1 + loudHigh() * 0.35)
+            .out(o1);
+        }
+      },
+      {
+        name: 'Dualidades',
+        activate() {
+          startDualitiesScene();
+
+          solid(0.05, 0.08, 0.32)
+            .out(o0);
+
+          src(o0)
+            .diff(osc(() => 3 + loudHigh() * 5, 0.05, 0.85)
+              .modulate(noise(() => 1.2 + loudRhythm() * 2.5), () => 0.1 + loudHigh() * 0.25))
+            .colorama(() => 0.08 + loudRhythm() * 0.25)
+            .out(o1);
+        }
+      },
+      {
+        name: 'Glitch imagen',
+        activate() {
+          const main = textures.get('imageA');
+          const aux = textures.get('imageB');
+
+          if (main) {
+            s0.init({ src: main });
+            // mostrar la fotografía principal casi sin procesar, con un ligero pulso
+            src(s0).out(o0);
+
+            if (aux) {
+              s1.init({ src: aux });
+              src(s1)
+                .pixelate(() => 220 + loudHigh() * 120, () => 200 + loudRhythm() * 120)
+                .luma(() => 0.3 + loudRhythm() * 0.25)
+                .modulateRotate(src(o0), () => 0.01 + loudHigh() * 0.04)
+                .blend(src(o0), () => 0.08 + loudRhythm() * 0.18)
+                .out(o1);
+
+              // mezcla muy sutil con la capa de glitch secundaria
+              src(o0)
+                .blend(src(o1), () => 0.05 + loudRhythm() * 0.12)
+                .out(o0);
+            }
+
+            // realce opcional por colorama leve para evitar que quede plano
+            src(o0)
+              .colorama(() => 0.05 + loudBass() * 0.25)
+              .out(o1);
+
+            src(o0)
+              .blend(src(o1), () => 0.08 + loudRhythm() * 0.15)
+              .saturate(() => 1.0 + loudHigh() * 0.25)
+              .out(o0);
+          } else {
+            osc(() => 8 + loudRhythm() * 4, 0.12, () => 1 + loudHigh() * 0.5)
+              .modulate(voronoi(() => 5 + loudBass() * 14, 0.4), () => 0.18 + loudHigh() * 0.35)
+              .out(o0);
+          }
+        }
+      }
+    ];
+
+    let currentScene = -1;
+
+    function activateScene(index) {
+      const safeIndex = Math.max(0, Math.min(index, scenes.length - 1));
+      if (currentScene === safeIndex) return;
+      currentScene = safeIndex;
+
+      const scene = scenes[safeIndex];
+      const isTextScene = safeIndex === 2;
+      if (!isTextScene) {
+        stopDualitiesScene();
+        wordContainer.dataset.enabled = 'true';
+        wordOverlay.classList.remove('active');
+      }
+      sceneLabel.textContent = `${safeIndex} · ${scene.name}`;
+      markSceneButton(safeIndex);
+      scene.activate();
+      logMessage(`Escena ${safeIndex} activada (${scene.name}).`);
+    }
+
+    bridge.on('scene', (value) => {
+      activateScene(value);
+    });
+
+    sceneButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        const sceneIndex = Number(button.dataset.scene) || 0;
+        activateScene(sceneIndex);
+      });
+    });
+
+    const texturePaths = [
+      '../../images',
+      '../images',
+      './images',
+      '/images'
+    ];
+
+    const resolveTexturePath = (filename) => texturePaths.map((base) => `${base}/${filename}`);
+
+    loadTexture('imageA', resolveTexturePath('cdv.jpeg'))
+      .then(() => loadTexture('imageB', resolveTexturePath('cdv2.jpeg')))
+      .catch(() => null)
+      .finally(() => {
+        activateScene(0);
+        bridge.start();
+      });
+  </script>
+</body>
+
+</html>

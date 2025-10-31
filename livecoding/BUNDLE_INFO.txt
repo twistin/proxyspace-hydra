@@ -1,0 +1,20 @@
+BUNDLE DE LIVE CODING - Estructura mínima para sesión
+
+Carpetas incluidas:
+
+- setup/: archivos SuperCollider esenciales (Setup.scd, Snippets.scd, synthdefs.scd, patrones.scd, sample-audition.scd, Setup-2.scd, I Ching.scd)
+- samples/: estructura para samples de audio (audio/, set1/, set1lfx/)
+- sesiones/: ejemplo de sesión (2024-10-29_ejemplo_completo.scd)
+- of/: proyecto openFrameworks completo listo para compilar
+  - src/: main.cpp, ofApp.cpp, ofApp.h
+  - bin/data/landscapes/: README.md (agrega tus imágenes)
+  - otros archivos de configuración y utilidades
+
+Instrucciones:
+1. Agrega tus samples de audio en samples/audio/ o set1/ según tu set.
+2. Agrega imágenes en of/bin/data/landscapes/.
+3. Abre y compila el proyecto oF en Xcode o make.
+4. Abre los archivos .scd en SuperCollider y ejecuta Setup.scd.
+5. Usa los archivos de sesiones como plantilla para tus lives.
+
+¡Listo para tocar en vivo con la estructura más limpia y portable!

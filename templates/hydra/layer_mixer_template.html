@@ -1,0 +1,2168 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hydra Layer Mixer</title>
+  <script src="https://cdn.jsdelivr.net/npm/hydra-synth@1.3.0/dist/hydra-synth.min.js"></script>
+  <script src="../../hydra/js/osc-client.js"></script>
+  <style>
+    :root {
+      color-scheme: dark;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #050505;
+      font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+    }
+
+    #hydra-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      display: block;
+      z-index: 0;
+    }
+
+    #hud {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      padding: 20px 24px;
+      border-radius: 16px;
+      background: rgba(8, 8, 12, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4),
+                  0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      color: #f8f8f8;
+      min-width: 280px;
+      z-index: 20;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    #hud:hover {
+      background: rgba(12, 12, 16, 0.45);
+      border-color: rgba(255, 255, 255, 0.18);
+      box-shadow: 0 12px 48px rgba(0, 0, 0, 0.5),
+                  0 0 0 1px rgba(255, 255, 255, 0.08) inset;
+      transform: translateY(-2px);
+    }
+
+    #hud h1 {
+      font-size: 14px;
+      letter-spacing: 0.18em;
+      font-weight: 700;
+      text-transform: uppercase;
+      margin: 0 0 16px;
+      color: #d4f4ff;
+      text-shadow: 0 0 20px rgba(180, 250, 255, 0.4);
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .status-line {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      margin-bottom: 10px;
+      gap: 16px;
+      padding: 4px 0;
+      transition: all 0.2s ease;
+    }
+
+    .status-line:hover {
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 6px;
+      padding: 4px 8px;
+      margin-left: -8px;
+      margin-right: -8px;
+    }
+
+    .status-line strong {
+      font-weight: 600;
+      color: #b8e6ff;
+      text-shadow: 0 0 10px rgba(184, 230, 255, 0.3);
+    }
+
+    .value {
+      font-family: "JetBrains Mono", "Fira Code", monospace;
+      font-size: 13px;
+      font-weight: 600;
+      min-width: 70px;
+      padding: 4px 10px;
+      border-radius: 8px;
+      text-align: right;
+      transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    .value.rhythm {
+      color: #ffb3ff;
+      background: rgba(255, 151, 255, 0.15);
+      border: 1px solid rgba(255, 151, 255, 0.25);
+      text-shadow: 0 0 12px rgba(255, 151, 255, 0.5);
+    }
+
+    .value.bass {
+      color: #a3ffca;
+      background: rgba(122, 255, 161, 0.15);
+      border: 1px solid rgba(122, 255, 161, 0.25);
+      text-shadow: 0 0 12px rgba(122, 255, 161, 0.5);
+    }
+
+    .value.high {
+      color: #a8d4ff;
+      background: rgba(121, 196, 255, 0.15);
+      border: 1px solid rgba(121, 196, 255, 0.25);
+      text-shadow: 0 0 12px rgba(121, 196, 255, 0.5);
+    }
+
+    #scene-buttons {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      z-index: 20;
+      max-width: 360px;
+    }
+
+    #scene-buttons button {
+      font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 10px 18px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: rgba(15, 15, 22, 0.4);
+      backdrop-filter: blur(16px) saturate(180%);
+      -webkit-backdrop-filter: blur(16px) saturate(180%);
+      color: #f9f9f9;
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    #scene-buttons button:hover {
+      transform: translateY(-3px);
+      border-color: rgba(255, 255, 255, 0.3);
+      background: rgba(20, 20, 28, 0.55);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+    }
+
+    #scene-buttons button[data-active="true"] {
+      border-color: #ffda85;
+      background: rgba(255, 212, 121, 0.25);
+      color: #ffe5a8;
+      transform: translateY(-2px);
+      box-shadow: 0 0 24px rgba(255, 212, 121, 0.4),
+                  0 6px 16px rgba(0, 0, 0, 0.3);
+      text-shadow: 0 0 8px rgba(255, 212, 121, 0.6);
+    }
+
+    #dualidades-overlay {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      pointer-events: none;
+      z-index: 40;
+      opacity: 0;
+      transition: opacity 0.35s ease;
+      background: rgba(14, 16, 42, 0.82);
+      border: 1px solid rgba(130, 160, 255, 0.22);
+      box-shadow: 0 20px 80px rgba(6, 8, 26, 0.45);
+      backdrop-filter: blur(28px) saturate(165%);
+      -webkit-backdrop-filter: blur(28px) saturate(165%);
+      overflow: hidden;
+    }
+
+    #dualidades-overlay[data-active="true"] {
+      opacity: 1;
+    }
+
+    #dualidades-overlay .pair {
+      display: flex;
+      align-items: baseline;
+      gap: clamp(24px, 6vw, 60px);
+      font-size: clamp(24px, 5vw, 86px);
+      font-weight: 700;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      text-shadow: 0 0 24px rgba(0, 0, 0, 0.55);
+      opacity: 0.82;
+      position: relative;
+    }
+
+    #dualidades-overlay .pair + .pair {
+      margin-top: clamp(22px, 6vh, 80px);
+    }
+
+    #dualidades-overlay .pair .left,
+    #dualidades-overlay .pair .right {
+      transition: transform 0.45s ease, opacity 0.45s ease;
+      color: rgba(232, 236, 255, 0.92);
+      text-shadow: 0 0 22px rgba(14, 18, 80, 0.55);
+    }
+
+    #dualidades-overlay .pair .char {
+      display: inline-block;
+      transition: transform 0.08s ease, color 0.12s ease, mix-blend-mode 0.25s ease, opacity 0.08s ease;
+      will-change: transform;
+    }
+
+    #dualidades-overlay.swap-columns .pair {
+      flex-direction: row-reverse;
+    }
+
+    #dualidades-overlay.swap-columns .pair .divider {
+      transform: rotate(180deg);
+    }
+
+    #dualidades-overlay .pair[data-alt="true"] {
+      opacity: 0.75;
+      filter: hue-rotate(6deg) saturate(1.12);
+    }
+
+    #dualidades-overlay .pair[data-muted="true"] {
+      opacity: 0.42;
+      filter: blur(0.6px) saturate(0.75);
+    }
+
+    #dualidades-overlay .pair[data-muted="true"] .char {
+      opacity: 0.65;
+    }
+
+    .overlay-decoration {
+      position: absolute;
+      pointer-events: none;
+      transition: transform 0.45s ease, opacity 0.35s ease, background 0.35s ease;
+      mix-blend-mode: screen;
+    }
+
+    .overlay-decoration[data-role="halo-left"],
+    .overlay-decoration[data-role="halo-right"] {
+      width: clamp(160px, 22vw, 280px);
+      height: clamp(160px, 22vw, 280px);
+      border-radius: 50%;
+      opacity: 0;
+      filter: blur(20px);
+    }
+
+    .overlay-decoration[data-role="halo-left"] {
+      left: clamp(6%, 18vw, 24%);
+      top: clamp(14%, 26vh, 32%);
+    }
+
+    .overlay-decoration[data-role="halo-right"] {
+      right: clamp(6%, 18vw, 24%);
+      bottom: clamp(12%, 24vh, 30%);
+    }
+
+    .overlay-decoration[data-role^="line"] {
+      width: 100%;
+      height: 2px;
+      opacity: 0;
+      background: linear-gradient(90deg, rgba(90, 120, 255, 0) 0%, rgba(206, 224, 255, 0.75) 50%, rgba(90, 120, 255, 0) 100%);
+    }
+
+    .overlay-decoration[data-role="line-top"] {
+      top: 20%;
+    }
+
+    .overlay-decoration[data-role="line-bottom"] {
+      bottom: 18%;
+    }
+
+    .overlay-decoration[data-role="line-center"] {
+      top: 50%;
+      transform: translateY(-50%);
+    }
+
+    #dualidades-overlay[data-active="true"] .pair .left {
+      transform: translateX(-1%);
+    }
+
+    #dualidades-overlay[data-active="true"] .pair .right {
+      transform: translateX(1%);
+    }
+
+    #dualidades-overlay .pair .divider {
+      font-size: 0.45em;
+      opacity: 0.65;
+      color: rgba(250, 248, 255, 0.6);
+      letter-spacing: 0.1em;
+      display: inline-block;
+      transition: transform 0.45s ease, opacity 0.35s ease;
+    }
+
+    #log {
+      position: fixed;
+      bottom: 18px;
+      left: 20px;
+      font-family: "JetBrains Mono", "Fira Code", monospace;
+      font-size: 11px;
+      letter-spacing: 0.05em;
+      color: rgba(240, 240, 245, 0.65);
+      background: rgba(8, 8, 12, 0.3);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      padding: 8px 14px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      z-index: 20;
+      max-width: 72ch;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    }
+  </style>
+</head>
+
+<body>
+  <canvas id="hydra-canvas"></canvas>
+
+  <div id="hud">
+    <h1>Hydra · Layer Mixer</h1>
+    <div class="status-line">
+      <strong>Estado</strong>
+      <span id="status-label">Inactivo</span>
+    </div>
+
+    <div class="status-line">
+      <span>Ritmo</span>
+      <span id="value-rhythm" class="value rhythm">0.1000</span>
+    </div>
+
+    <div class="status-line">
+      <span>Bajo</span>
+      <span id="value-bass" class="value bass">0.1000</span>
+    </div>
+
+    <div class="status-line">
+      <span>Agudo</span>
+      <span id="value-high" class="value high">0.1000</span>
+    </div>
+
+    <div class="status-line">
+      <span>Escena</span>
+      <span id="scene-label">Ninguna</span>
+    </div>
+  </div>
+
+  <div id="scene-buttons"></div>
+
+  <div id="dualidades-overlay" data-active="false">
+    <div class="overlay-decoration" data-role="halo-left"></div>
+    <div class="overlay-decoration" data-role="halo-right"></div>
+    <div class="overlay-decoration" data-role="line-top"></div>
+    <div class="overlay-decoration" data-role="line-bottom"></div>
+    <div class="overlay-decoration" data-role="line-center"></div>
+    <div class="pair" data-tone="cyan">
+      <span class="left">Devenir</span>
+      <span class="divider">↔</span>
+      <span class="right">Inteligible</span>
+    </div>
+    <div class="pair" data-tone="sunset">
+      <span class="left">Caos</span>
+      <span class="divider">↔</span>
+      <span class="right">Armonía</span>
+    </div>
+    <div class="pair" data-tone="gold">
+      <span class="left">Forma</span>
+      <span class="divider">↔</span>
+      <span class="right">Materia</span>
+    </div>
+  </div>
+
+  <div id="log"></div>
+
+  <script>
+  const canvas = document.getElementById('hydra-canvas');
+    const hudStatus = document.getElementById('status-label');
+    const valueRhythm = document.getElementById('value-rhythm');
+    const valueBass = document.getElementById('value-bass');
+    const valueHigh = document.getElementById('value-high');
+    const sceneLabel = document.getElementById('scene-label');
+    const logElement = document.getElementById('log');
+    const sceneButtonsContainer = document.getElementById('scene-buttons');
+  const dualidadesOverlay = document.getElementById('dualidades-overlay');
+    const dualidadesOverlayPairs = dualidadesOverlay
+      ? Array.from(dualidadesOverlay.querySelectorAll('.pair')).map((pair) => ({
+          pair,
+          left: pair.querySelector('.left'),
+          right: pair.querySelector('.right')
+        }))
+      : [];
+    const dualidadesOverlayDecorations = dualidadesOverlay
+      ? Array.from(dualidadesOverlay.querySelectorAll('.overlay-decoration'))
+      : [];
+  let dualidadesOverlayAnimationId = null;
+  let dualidadesOverlayActiveScene = null;
+  let dualidadesPulse = 0;
+  let dualidadesGlitch = 0;
+  let dualidadesLastRhythm = 0.1;
+  let dualidadesFill = 0;
+  let dualidadesCycleTimer = null;
+  let dualidadesCycleState = 0;
+  const dualidadesSpanCache = new Map();
+
+    const getDecorationByRole = (role) =>
+      dualidadesOverlayDecorations.find((node) => node.dataset.role === role) || null;
+
+    function ensureDualidadesSpans() {
+      if (!dualidadesOverlay) return;
+      dualidadesOverlayPairs.forEach(({ left, right }) => {
+        [left, right].forEach((node) => {
+          if (!node) return;
+          if (node.dataset.spanified !== 'true') {
+            const text = node.textContent || '';
+            const fragment = document.createDocumentFragment();
+            Array.from(text).forEach((char, index) => {
+              const span = document.createElement('span');
+              span.className = 'char';
+              span.dataset.index = String(index);
+              span.textContent = char === ' ' ? '\u00a0' : char;
+              fragment.appendChild(span);
+            });
+            node.textContent = '';
+            node.appendChild(fragment);
+            node.dataset.spanified = 'true';
+          }
+          dualidadesSpanCache.set(node, Array.from(node.querySelectorAll('.char')));
+        });
+      });
+    }
+
+    function getCharSpans(node) {
+      if (!node) return [];
+      if (!dualidadesSpanCache.has(node)) {
+        if (node.dataset && node.dataset.spanified === 'true') {
+          dualidadesSpanCache.set(node, Array.from(node.querySelectorAll('.char')));
+        } else {
+          ensureDualidadesSpans();
+        }
+      }
+      return dualidadesSpanCache.get(node) || [];
+    }
+
+    function applySpanGlitch(node, amount, phase, baseHue, baseSpacing) {
+      if (!node) return;
+      const spans = getCharSpans(node);
+      if (!spans.length) return;
+      const safeAmount = clampRange(amount, 0, 1.8);
+      const total = spans.length;
+      spans.forEach((span, index) => {
+        const idxFactor = total > 1 ? index / (total - 1) : 0;
+        const energy = safeAmount * (0.6 + Math.sin(phase * 1.2 + idxFactor * Math.PI * 1.4) * 0.4);
+        const translateX = Math.sin(phase * 2.5 + idxFactor * 2.1) * energy * 18;
+        const translateY = Math.cos(phase * 2.8 + idxFactor * 1.9) * energy * 12;
+        const skew = Math.sin(phase * 3.1 + idxFactor * 2.4) * energy * 7;
+        const scale = 1 + energy * 0.22;
+        span.style.transform = `translate3d(${translateX.toFixed(2)}px, ${translateY.toFixed(2)}px, 0) skew(${skew.toFixed(2)}deg) scale(${scale.toFixed(3)})`;
+        span.style.mixBlendMode = energy > 0.45 ? 'difference' : 'normal';
+        if (energy > 0.35) {
+          const hueOffset = baseHue + Math.sin(phase + idxFactor * Math.PI * 0.9) * 80;
+          span.style.color = hsl(hueOffset, 88, 70, clampRange(0.65 + energy * 0.3, 0, 1));
+        } else {
+          span.style.color = '';
+        }
+        span.style.opacity = clampRange(0.7 + energy * 0.3, 0.4, 1).toFixed(3);
+        if (typeof baseSpacing === 'number') {
+          const spacingValue = index === total - 1 ? 0 : baseSpacing + energy * 0.05;
+          span.style.marginRight = `${spacingValue.toFixed(3)}em`;
+        } else {
+          span.style.marginRight = '';
+        }
+      });
+    }
+
+    function clearDualidadesCycleTimer() {
+      if (dualidadesCycleTimer) {
+        clearTimeout(dualidadesCycleTimer);
+        dualidadesCycleTimer = null;
+      }
+    }
+
+    function applyDualidadesCycleState(stage) {
+      if (!dualidadesOverlay) return;
+      dualidadesOverlay.classList.toggle('swap-columns', stage % 2 === 1);
+      const cycleStage = stage === 2 ? 'glow' : stage === 3 ? 'flare' : 'base';
+      dualidadesOverlay.dataset.cycleStage = cycleStage;
+      dualidadesOverlayPairs.forEach(({ pair }, index) => {
+        if (!pair) return;
+        const becomeAlt = stage === 2 && index % 2 === 0;
+        const becomeMuted = stage === 3 && index === 1;
+        if (becomeAlt) {
+          pair.setAttribute('data-alt', 'true');
+        } else {
+          pair.removeAttribute('data-alt');
+        }
+        if (becomeMuted) {
+          pair.setAttribute('data-muted', 'true');
+        } else {
+          pair.removeAttribute('data-muted');
+        }
+      });
+    }
+
+    function scheduleDualidadesCycle() {
+      clearDualidadesCycleTimer();
+      if (!dualidadesOverlay) return;
+      const rhythm = clamp01(bridge.getValue('rhythm', 0.1));
+      const manualMutacion = clamp01(bridge.getValue('dualidades.mutacion', 0));
+      const basePeriodMs = 16000;
+      const tempoFactor = clampRange(1 - rhythm * 0.35 - manualMutacion * 0.25, 0.55, 1.5);
+      dualidadesCycleTimer = setTimeout(() => {
+        dualidadesCycleState = (dualidadesCycleState + 1) % 4;
+        applyDualidadesCycleState(dualidadesCycleState);
+        scheduleDualidadesCycle();
+      }, basePeriodMs * tempoFactor);
+    }
+
+    const clamp01 = (value) => {
+      const numeric = typeof value === 'number' ? value : 0;
+      if (Number.isNaN(numeric)) return 0;
+      if (numeric < 0) return 0;
+      if (numeric > 1) return 1;
+      return numeric;
+    };
+
+    const clampRange = (value, min, max) => Math.min(max, Math.max(min, value));
+
+    const toHue = (value) => ((value % 360) + 360) % 360;
+
+    const hsl = (h, s, l, a = 1) => {
+      const alpha = clampRange(a, 0, 1);
+      return `hsla(${Math.round(toHue(h))}, ${clampRange(s, 0, 100).toFixed(0)}%, ${clampRange(l, 0, 100).toFixed(0)}%, ${alpha.toFixed(3)})`;
+    };
+
+    function startDualidadesOverlayAnimation(scene) {
+      dualidadesOverlayActiveScene = scene;
+      if (dualidadesOverlayAnimationId) {
+        cancelAnimationFrame(dualidadesOverlayAnimationId);
+      }
+      ensureDualidadesSpans();
+      applyDualidadesCycleState(dualidadesCycleState);
+      scheduleDualidadesCycle();
+      dualidadesPulse = 0;
+      dualidadesGlitch = 0;
+      dualidadesFill = 0;
+      dualidadesLastRhythm = clamp01(bridge.getValue('rhythm', 0.1));
+      updateDualidadesOverlayScene(dualidadesOverlayActiveScene);
+      const tick = () => {
+        if (!dualidadesOverlayActiveScene || !dualidadesOverlay || dualidadesOverlay.dataset.active !== 'true') {
+          dualidadesOverlayAnimationId = null;
+          return;
+        }
+        updateDualidadesOverlayScene(dualidadesOverlayActiveScene);
+        dualidadesOverlayAnimationId = requestAnimationFrame(tick);
+      };
+      dualidadesOverlayAnimationId = requestAnimationFrame(tick);
+    }
+
+    function stopDualidadesOverlayAnimation() {
+      if (dualidadesOverlayAnimationId) {
+        cancelAnimationFrame(dualidadesOverlayAnimationId);
+        dualidadesOverlayAnimationId = null;
+      }
+      clearDualidadesCycleTimer();
+      dualidadesOverlayActiveScene = null;
+      dualidadesPulse = 0;
+      dualidadesGlitch = 0;
+      dualidadesFill = 0;
+    }
+
+    function updateDualidadesOverlayScene(scene) {
+      if (!dualidadesOverlay || !scene || scene.id !== 'dualidades') return;
+      ensureDualidadesSpans();
+      const valores = [
+        clamp01(scene.params.devenir),
+        clamp01(scene.params.caos),
+        clamp01(scene.params.forma)
+      ];
+      const velocidad = clamp01(scene.params.speed);
+      const now = performance.now() * 0.001;
+      const rhythmLevel = clamp01(mapLevel(bridge.getValue('rhythm', 0.1), 0.05, 1.3));
+      const bassLevel = clamp01(mapLevel(bridge.getValue('bass', 0.1), 0.05, 1.4));
+      const highLevel = clamp01(mapLevel(bridge.getValue('high', 0.1), 0.04, 1.5));
+      const rhythmRaw = clamp01(bridge.getValue('rhythm', 0.1));
+      const rhythmDelta = rhythmRaw - dualidadesLastRhythm;
+      const hitPulse = rhythmRaw > 0.22 && rhythmDelta > 0.035;
+
+      const manualMutacion = clamp01(bridge.getValue('dualidades.mutacion', 0));
+      const manualGlitch = clamp01(bridge.getValue('dualidades.glitchBoost', 0));
+      const paletteBlend = clamp01(bridge.getValue('dualidades.palette', 0));
+      const cycleStage = dualidadesOverlay.dataset.cycleStage || 'base';
+      const cycleHueOffset = cycleStage === 'glow' ? 0.25 : cycleStage === 'flare' ? 0.6 : 0;
+      const cycleEnergyBoost = cycleStage === 'flare' ? 0.35 : cycleStage === 'glow' ? 0.18 : 0;
+
+      if (hitPulse) {
+        dualidadesPulse = 1;
+        if (valores[1] > 0.45 || highLevel > 0.35) {
+          dualidadesGlitch = Math.max(
+            dualidadesGlitch,
+            0.75 + valores[1] * 0.25 + highLevel * 0.2 + manualGlitch * 0.2 + cycleEnergyBoost * 0.3
+          );
+        }
+      }
+
+      if (manualMutacion > 0.78) {
+        dualidadesPulse = Math.max(dualidadesPulse, manualMutacion);
+      }
+      if (manualGlitch > 0) {
+        dualidadesGlitch = Math.max(dualidadesGlitch, manualGlitch);
+      }
+
+      dualidadesLastRhythm = rhythmRaw;
+
+      const pulseDecay = clampRange(0.8 + velocidad * 0.06 - rhythmLevel * 0.08 - manualMutacion * 0.05, 0.68, 0.92);
+      dualidadesPulse = Math.max(
+        dualidadesPulse * pulseDecay,
+        rhythmLevel * 0.22,
+        manualMutacion * 0.7,
+        cycleEnergyBoost * 0.55
+      );
+
+      dualidadesGlitch = Math.max(
+        dualidadesGlitch * 0.82,
+        Math.max(0, valores[1] - 0.68) * 0.65,
+        manualGlitch * 0.9
+      );
+      dualidadesGlitch = clampRange(dualidadesGlitch, 0, 1);
+
+      const fillComposite = clampRange(
+        bassLevel * 0.6 + highLevel * 0.4 + manualMutacion * 0.35 + cycleEnergyBoost * 0.25,
+        0,
+        1.5
+      );
+      if (fillComposite > 0.78 || manualGlitch > 0.65) {
+        dualidadesFill = 1;
+      }
+      const fillDecay = clampRange(0.86 - velocidad * 0.05 - manualMutacion * 0.04, 0.72, 0.92);
+      dualidadesFill = Math.max(dualidadesFill * fillDecay, fillComposite * 0.25);
+
+      const breathing =
+        1 +
+        rhythmLevel * 0.035 +
+        Math.sin(now * (0.65 + velocidad * 1.05)) * (0.01 + rhythmLevel * 0.02) +
+        dualidadesPulse * (0.08 + cycleEnergyBoost * 0.12) +
+        bassLevel * 0.04 +
+        manualMutacion * 0.05;
+      const tiltBase = Math.sin(now * (0.18 + velocidad * 0.22)) * (0.3 + rhythmLevel * 0.6 + cycleEnergyBoost * 0.4);
+      const tilt = tiltBase + Math.sin(now * (2.6 + velocidad * 1.1)) * dualidadesPulse * (2.2 + manualGlitch * 0.6);
+      const brightness = clampRange(
+        0.9 + velocidad * 0.15 + rhythmLevel * 0.08 + dualidadesPulse * (0.25 + cycleEnergyBoost * 0.2) + dualidadesFill * 0.2,
+        0.85,
+        1.7
+      );
+      const overlayScale = breathing + dualidadesPulse * 0.12 + manualMutacion * 0.05;
+      const overlaySaturation = clampRange(
+        1 + dualidadesPulse * 0.45 + highLevel * 0.18 + valores[1] * 0.22 + paletteBlend * 0.35,
+        0.8,
+        2.4
+      );
+      const overlayContrast = clampRange(1 + dualidadesFill * 0.4 + manualGlitch * 0.3, 0.85, 2.1);
+
+      dualidadesOverlay.style.transform = `scale(${overlayScale.toFixed(4)}) rotate(${tilt.toFixed(3)}deg)`;
+      dualidadesOverlay.style.filter = `brightness(${(brightness * (1 + dualidadesPulse * 0.22)).toFixed(3)}) saturate(${overlaySaturation.toFixed(3)}) contrast(${overlayContrast.toFixed(3)})`;
+
+      const baseHue = 226 - valores[2] * 45 + valores[0] * 28 + (paletteBlend + cycleHueOffset) * 72;
+      const backgroundAlpha = clampRange(0.45 + velocidad * 0.28 + dualidadesPulse * 0.4 + dualidadesFill * 0.3, 0.4, 0.98);
+      const backgroundHueB = baseHue - 26 + valores[1] * 35 + paletteBlend * 40;
+      const pulseEnvelope = clampRange(
+        0.2 + dualidadesPulse * (1.05 + velocidad * 0.3 + cycleEnergyBoost * 0.6) + rhythmLevel * 0.35 + dualidadesFill * 0.25,
+        0.1,
+        1.2
+      );
+      dualidadesOverlay.style.opacity = pulseEnvelope.toFixed(3);
+      dualidadesOverlay.style.background = `linear-gradient(135deg, ${hsl(baseHue, 62 + valores[0] * 18, 18 + valores[2] * 12, backgroundAlpha)} 0%, ${hsl(backgroundHueB, 68 + valores[1] * 20 + paletteBlend * 10, 12 + velocidad * 10 + dualidadesFill * 8, clampRange(backgroundAlpha + 0.18 + dualidadesPulse * 0.18 + dualidadesFill * 0.12, 0, 1))} 70%)`;
+      dualidadesOverlay.style.borderColor = hsl(baseHue + 48, 72 + paletteBlend * 12, 64 + dualidadesFill * 10, 0.38 + velocidad * 0.25 + dualidadesPulse * 0.25 + dualidadesFill * 0.15);
+      const baseShadow = `0 24px 72px ${hsl(baseHue - 80, 78, 10, 0.45 + valores[1] * 0.25 + dualidadesPulse * 0.25 + cycleEnergyBoost * 0.2)}`;
+      const flashShadow = dualidadesFill > 0.05
+        ? `, 0 0 ${(60 + dualidadesFill * 220).toFixed(1)}px rgba(255, 255, 255, ${(0.12 + dualidadesFill * 0.45).toFixed(3)})`
+        : '';
+      dualidadesOverlay.style.boxShadow = `${baseShadow}${flashShadow}`;
+      const backdropBlur = 26 + velocidad * 14 + dualidadesPulse * 12 + dualidadesFill * 10 + cycleEnergyBoost * 6;
+      const backdropSaturate = 150 + valores[0] * 45 + dualidadesPulse * 80 + paletteBlend * 40 + dualidadesFill * 35;
+      dualidadesOverlay.style.backdropFilter = `blur(${backdropBlur.toFixed(1)}px) saturate(${backdropSaturate.toFixed(0)}%)`;
+      dualidadesOverlay.style.webkitBackdropFilter = dualidadesOverlay.style.backdropFilter;
+
+      const pairPalettes = [
+        { baseHue: 198, hueSpread: 150 },
+        { baseHue: 12, hueSpread: 178 },
+        { baseHue: 48, hueSpread: 204 }
+      ];
+
+      const glitchAmountGlobal = clampRange(
+        dualidadesGlitch * (0.35 + valores[1] * 0.5 + highLevel * 0.4 + cycleEnergyBoost * 0.4) + manualGlitch * 0.4,
+        0,
+        1.8
+      );
+
+      dualidadesOverlayPairs.forEach(({ pair, left, right }, index) => {
+        const intensidad = valores[index] ?? 0;
+        const baseOpacity = clampRange(0.52 + intensidad * 0.42 + velocidad * 0.08, 0.4, 1);
+        const palette = pairPalettes[index] || pairPalettes[pairPalettes.length - 1];
+        const pairIsAlt = pair?.dataset.alt === 'true';
+        const pairIsMuted = pair?.dataset.muted === 'true';
+        const paletteOffset = pairIsAlt ? 18 : 0;
+        const leftHue = palette.baseHue + intensidad * 65 + velocidad * 42 + paletteOffset + paletteBlend * 55;
+        const rightHue = palette.baseHue + palette.hueSpread - velocidad * 28 + intensidad * 48 - paletteOffset + paletteBlend * 45;
+        const leftLight = clampRange(60 + intensidad * 22 - valores[2] * 6 + dualidadesFill * 6, 42, 86);
+        const rightLight = clampRange(56 + intensidad * 20 - valores[0] * 4 + dualidadesFill * 5, 40, 82);
+        const leftColor = hsl(leftHue, 88, leftLight);
+        const rightColor = hsl(rightHue, 80, rightLight);
+        const glowStrength = 12 + intensidad * 26 + velocidad * 12 + dualidadesPulse * 14 + dualidadesFill * 10;
+        const leftGlow = hsl(leftHue, 92, 74, 0.68 + dualidadesPulse * 0.1 + dualidadesFill * 0.12);
+        const rightGlow = hsl(rightHue, 88, 72, 0.62 + dualidadesPulse * 0.08 + dualidadesFill * 0.1);
+        const directionalBias = index - 1;
+        const pairDrift = Math.sin(now * (0.42 + velocidad * 0.35) + index * 0.9) * (6 + rhythmLevel * 9 + intensidad * 4 + cycleEnergyBoost * 5);
+        const horizontalBase = 16 + intensidad * 22 + Math.abs(directionalBias) * 8;
+        const horizontalDrift = Math.sin(now * (0.78 + velocidad * 0.62) + index * 1.1) * (10 + velocidad * 12 + rhythmLevel * 8 + dualidadesFill * 6);
+        const verticalDrift = Math.cos(now * (0.55 + velocidad * 0.48) + index * 0.8) * (4 + intensidad * 5 + rhythmLevel * 6 + dualidadesFill * 4);
+        const baseSkew = Math.sin(now * (0.5 + intensidad * 0.7) + index) * (0.5 + velocidad * 1.1 + cycleEnergyBoost * 0.5);
+        const glitchAmount = clampRange(glitchAmountGlobal * (0.85 + intensidad * 0.5 + (pairIsAlt ? 0.2 : 0)), 0, 1.8);
+        const glitchPhase = now * (32 + index * 4.2);
+        const glitchShakeX = Math.sin(glitchPhase) * glitchAmount * 24;
+        const glitchShakeY = Math.cos(glitchPhase * 1.17) * glitchAmount * 18;
+        const glitchSkew = Math.sin(glitchPhase * 1.32) * glitchAmount * 6;
+        const visibilityBias = pairIsMuted ? 0.35 : pairIsAlt ? 0.85 : 1;
+        const pairGate = clampRange(
+          0.28 + dualidadesPulse * (1.2 + intensidad * 0.4 + cycleEnergyBoost * 0.5) + rhythmLevel * 0.3 + manualMutacion * 0.15,
+          0.12,
+          1.4
+        );
+        const pairOpacity = clampRange((baseOpacity * pairGate * (1 - glitchAmount * 0.25) + glitchAmount * 0.15) * visibilityBias, 0, 1);
+        const pairScale = clampRange(
+          0.72 + dualidadesPulse * 0.65 + intensidad * 0.25 + rhythmLevel * 0.18 + dualidadesFill * 0.15,
+          0.45,
+          1.9
+        );
+        const pairTranslateX = glitchShakeX * 0.35;
+        const pairTranslateY = pairDrift + glitchShakeY * 0.25;
+        const pairFilters = [
+          `drop-shadow(0 0 ${(8 + intensidad * 16 + dualidadesPulse * 14 + glitchAmount * 12 + dualidadesFill * 10).toFixed(1)}px ${hsl((leftHue + rightHue) / 2, 78, 42, 0.55 + intensidad * 0.2 + dualidadesPulse * 0.1 + dualidadesFill * 0.15)})`
+        ];
+        if (glitchAmount > 0.05) {
+          pairFilters.push(`hue-rotate(${(glitchAmount * 140 + intensidad * 20 + paletteBlend * 45).toFixed(1)}deg)`);
+          pairFilters.push(`contrast(${(1.05 + glitchAmount * 0.55 + dualidadesFill * 0.2).toFixed(3)})`);
+          pairFilters.push(`saturate(${(1.1 + glitchAmount * 0.55 + paletteBlend * 0.35).toFixed(3)})`);
+        }
+        const letterGate = clampRange(0.32 + dualidadesPulse * 1.1 + intensidad * 0.4 + dualidadesFill * 0.25, 0.1, 1.3);
+        const letterOpacity = clampRange(baseOpacity * letterGate * visibilityBias, 0, 1);
+        const glitchSpacing = glitchAmount * 0.12;
+        const baseSpacingLeft = 0.18 + intensidad * 0.08 + velocidad * 0.02 - (pairIsAlt ? 0.02 : 0);
+        const baseSpacingRight = 0.18 + intensidad * 0.08 + velocidad * 0.015 + (pairIsAlt ? 0.02 : 0);
+        const leftSpacing = clampRange(baseSpacingLeft + glitchSpacing * (directionalBias <= 0 ? -1 : -0.5), 0.05, 0.6);
+        const rightSpacing = clampRange(baseSpacingRight + glitchSpacing * (directionalBias >= 0 ? 1 : 0.5), 0.05, 0.6);
+        const totalSkew = baseSkew + glitchSkew;
+        const leftX = -horizontalBase - directionalBias * 12 + horizontalDrift - glitchShakeX;
+        const leftY = -verticalDrift + glitchShakeY;
+        const rightX = horizontalBase + directionalBias * 12 - horizontalDrift + glitchShakeX;
+        const rightY = verticalDrift - glitchShakeY;
+
+        if (pair) {
+          pair.style.opacity = pairOpacity.toFixed(3);
+          pair.style.filter = pairFilters.join(' ');
+          pair.style.transform = `translate3d(${pairTranslateX.toFixed(2)}px, ${pairTranslateY.toFixed(2)}px, 0) scale(${pairScale.toFixed(3)})`;
+        }
+        if (left) {
+          left.style.opacity = letterOpacity.toFixed(3);
+          left.style.color = leftColor;
+          left.style.textShadow = `0 0 ${(glowStrength + glitchAmount * 12).toFixed(1)}px ${leftGlow}`;
+          left.style.letterSpacing = '0em';
+          left.style.transform = `translate3d(${leftX.toFixed(2)}px, ${leftY.toFixed(2)}px, 0) skewX(${(-totalSkew).toFixed(2)}deg)`;
+          left.style.filter = glitchAmount > 0.05 ? `blur(${(glitchAmount * 1.3 + (1 - intensidad) * 0.2 + dualidadesFill * 0.2).toFixed(2)}px)` : '';
+          applySpanGlitch(
+            left,
+            glitchAmount * 0.9 + dualidadesPulse * 0.25 + manualGlitch * 0.6 + cycleEnergyBoost * 0.3,
+            glitchPhase + index * 0.6,
+            leftHue,
+            leftSpacing
+          );
+        }
+        if (right) {
+          right.style.opacity = letterOpacity.toFixed(3);
+          right.style.color = rightColor;
+          right.style.textShadow = `0 0 ${(glowStrength * 0.92 + glitchAmount * 10).toFixed(1)}px ${rightGlow}`;
+          right.style.letterSpacing = '0em';
+          right.style.transform = `translate3d(${rightX.toFixed(2)}px, ${rightY.toFixed(2)}px, 0) skewX(${totalSkew.toFixed(2)}deg)`;
+          right.style.filter = glitchAmount > 0.05 ? `blur(${(glitchAmount * 1.2 + intensidad * 0.15 + dualidadesFill * 0.18).toFixed(2)}px)` : '';
+          applySpanGlitch(
+            right,
+            glitchAmount * 0.85 + dualidadesPulse * 0.22 + manualGlitch * 0.55 + cycleEnergyBoost * 0.25,
+            glitchPhase + index * 0.8 + 1.2,
+            rightHue,
+            rightSpacing
+          );
+        }
+      });
+
+      if (canvas) {
+        const cameraPulse = dualidadesPulse * 0.05 + manualMutacion * 0.04 + cycleEnergyBoost * 0.02;
+        const cameraDriftX = Math.sin(now * (0.18 + velocidad * 0.2)) * (26 + rhythmLevel * 42) + manualMutacion * 25;
+        const cameraDriftY = Math.cos(now * (0.16 + velocidad * 0.18)) * (18 + bassLevel * 30) + dualidadesFill * 18;
+        const cameraShakeX = Math.sin(now * 4.2) * glitchAmountGlobal * 16;
+        const cameraShakeY = Math.cos(now * 3.6) * glitchAmountGlobal * 12;
+        canvas.style.transform = `translate(${(cameraDriftX + cameraShakeX).toFixed(2)}px, ${(cameraDriftY + cameraShakeY).toFixed(2)}px) scale(${(1.02 + cameraPulse).toFixed(3)})`;
+      }
+
+      const haloLeft = getDecorationByRole('halo-left');
+      const haloRight = getDecorationByRole('halo-right');
+      const lineTop = getDecorationByRole('line-top');
+      const lineBottom = getDecorationByRole('line-bottom');
+      const lineCenter = getDecorationByRole('line-center');
+
+      if (haloLeft) {
+        const haloIntensity = clampRange(0.22 + valores[0] * 0.55 + rhythmLevel * 0.25 + dualidadesPulse * 0.4 + dualidadesFill * 0.25, 0, 1);
+        haloLeft.style.opacity = haloIntensity.toFixed(3);
+        haloLeft.style.background = `radial-gradient(circle at 40% 40%, ${hsl(baseHue - 26, 92, 74, clampRange(0.45 + haloIntensity * 0.4, 0, 1))} 0%, ${hsl(baseHue - 30, 92, 30, 0)} 72%)`;
+        haloLeft.style.transform = `translate3d(${(Math.sin(now * 0.6 + 0.4) * (14 + dualidadesPulse * 12 + dualidadesFill * 6)).toFixed(2)}px, ${(Math.cos(now * 0.54 + 0.6) * (12 + dualidadesPulse * 10 + dualidadesFill * 5)).toFixed(2)}px, 0) scale(${(1 + valores[0] * 0.35 + rhythmLevel * 0.2 + dualidadesPulse * 0.35 + dualidadesFill * 0.22).toFixed(3)})`;
+        haloLeft.style.filter = `blur(${(20 + dualidadesPulse * 16 + dualidadesFill * 12 + glitchAmountGlobal * 18).toFixed(2)}px)`;
+      }
+
+      if (haloRight) {
+        const haloIntensity = clampRange(0.22 + valores[2] * 0.55 + highLevel * 0.25 + dualidadesPulse * 0.35 + dualidadesFill * 0.22, 0, 1);
+        haloRight.style.opacity = haloIntensity.toFixed(3);
+        haloRight.style.background = `radial-gradient(circle at 60% 60%, ${hsl(baseHue + 54, 88, 76, clampRange(0.4 + haloIntensity * 0.45, 0, 1))} 0%, ${hsl(baseHue + 48, 88, 32, 0)} 74%)`;
+        haloRight.style.transform = `translate3d(${(Math.sin(now * 0.58 + 1.2) * (18 + dualidadesPulse * 14 + dualidadesFill * 7)).toFixed(2)}px, ${(Math.cos(now * 0.62 + 0.3) * (14 + dualidadesPulse * 9 + dualidadesFill * 5)).toFixed(2)}px, 0) scale(${(1 + valores[2] * 0.38 + highLevel * 0.22 + dualidadesPulse * 0.32 + dualidadesFill * 0.2).toFixed(3)})`;
+        haloRight.style.filter = `blur(${(20 + dualidadesPulse * 14 + dualidadesFill * 10 + glitchAmountGlobal * 20).toFixed(2)}px)`;
+      }
+
+      if (lineTop) {
+        const lineOpacity = clampRange(0.18 + highLevel * 0.55 + velocidad * 0.15 + dualidadesPulse * 0.45 + dualidadesFill * 0.25, 0, 1);
+        const scaleX = clampRange(0.6 + highLevel * 0.7 + dualidadesPulse * 0.6 + dualidadesFill * 0.2, 0.4, 1.9);
+        lineTop.style.opacity = lineOpacity.toFixed(3);
+        lineTop.style.transform = `scaleX(${scaleX.toFixed(3)}) translateY(${(Math.sin(now * 1.3) * (8 + dualidadesPulse * 6 + dualidadesFill * 3)).toFixed(2)}px)`;
+        lineTop.style.filter = `blur(${(4 - highLevel * 2 + glitchAmountGlobal * 3 + dualidadesFill * 2).toFixed(2)}px) hue-rotate(${(glitchAmountGlobal * 120 + paletteBlend * 65).toFixed(1)}deg)`;
+      }
+
+      if (lineBottom) {
+        const lineOpacity = clampRange(0.18 + bassLevel * 0.45 + velocidad * 0.1 + dualidadesPulse * 0.38 + dualidadesFill * 0.22, 0, 1);
+        const scaleX = clampRange(0.65 + bassLevel * 0.6 + dualidadesPulse * 0.55 + dualidadesFill * 0.2, 0.4, 1.7);
+        lineBottom.style.opacity = lineOpacity.toFixed(3);
+        lineBottom.style.transform = `scaleX(${scaleX.toFixed(3)}) translateY(${(Math.cos(now * 1.1) * (6 + dualidadesPulse * 5 + dualidadesFill * 2.5)).toFixed(2)}px)`;
+        lineBottom.style.filter = `blur(${(4.5 - bassLevel * 2 + glitchAmountGlobal * 2.5 + dualidadesFill * 1.8).toFixed(2)}px)`;
+      }
+
+      if (lineCenter) {
+        const lineOpacity = clampRange(0.24 + rhythmLevel * 0.5 + valores[1] * 0.2 + dualidadesPulse * 0.5 + dualidadesFill * 0.25, 0, 1);
+        const scaleX = clampRange(0.6 + rhythmLevel * 0.65 + valores[1] * 0.3 + dualidadesPulse * 0.5 + dualidadesFill * 0.2, 0.5, 2);
+        lineCenter.style.opacity = lineOpacity.toFixed(3);
+        lineCenter.style.transform = `translateY(-50%) scaleX(${scaleX.toFixed(3)})`;
+        lineCenter.style.filter = `blur(${(3.5 - rhythmLevel * 1.5 + glitchAmountGlobal * 3 + dualidadesFill * 2).toFixed(2)}px)`;
+      }
+    }
+
+    function resetDualidadesOverlay() {
+      if (!dualidadesOverlay) return;
+      stopDualidadesOverlayAnimation();
+      dualidadesLastRhythm = 0.1;
+      dualidadesCycleState = 0;
+      dualidadesOverlay.classList.remove('swap-columns');
+      delete dualidadesOverlay.dataset.cycleStage;
+      dualidadesOverlay.style.opacity = '';
+      dualidadesOverlay.style.transform = '';
+      dualidadesOverlay.style.filter = '';
+      dualidadesOverlay.style.background = '';
+      dualidadesOverlay.style.borderColor = '';
+      dualidadesOverlay.style.boxShadow = '';
+      dualidadesOverlay.style.backdropFilter = '';
+      dualidadesOverlay.style.webkitBackdropFilter = '';
+      if (canvas) {
+        canvas.style.transform = '';
+      }
+      dualidadesOverlayPairs.forEach(({ pair, left, right }) => {
+        if (pair) {
+          pair.style.opacity = '';
+          pair.style.filter = '';
+          pair.style.transform = '';
+          pair.removeAttribute('data-alt');
+          pair.removeAttribute('data-muted');
+        }
+        if (left) {
+          left.style.opacity = '';
+          left.style.color = '';
+          left.style.textShadow = '';
+          left.style.filter = '';
+          left.style.letterSpacing = '';
+          left.style.transform = '';
+        }
+        if (right) {
+          right.style.opacity = '';
+          right.style.color = '';
+          right.style.textShadow = '';
+          right.style.filter = '';
+          right.style.letterSpacing = '';
+          right.style.transform = '';
+        }
+      });
+      dualidadesSpanCache.forEach((spans) => {
+        spans.forEach((span) => {
+          span.style.transform = '';
+          span.style.mixBlendMode = '';
+          span.style.color = '';
+          span.style.opacity = '';
+          span.style.marginRight = '';
+        });
+      });
+      dualidadesOverlayDecorations.forEach((node) => {
+        node.style.opacity = '';
+        node.style.transform = '';
+        node.style.background = '';
+        node.style.filter = '';
+      });
+    }
+
+    // Amplificar MUCHO más la señal de audio para reactividad visible
+    const mapLevel = (value, offset, scale) => Math.max(0, value - offset) * scale * 3.5;
+
+    const collageState = {
+      images: [],
+      currentIndex: 0,
+      nextIndex: 0,
+      blend: 0,
+      transitionProgress: 0,
+      transitioning: false,
+      transitionDuration: 1.4,
+      timer: 0,
+      flash: 0,
+      zoom: 0,
+      scrollX: 0,
+      scrollY: 0,
+      tilt: 0,
+      texturePulse: 0,
+      active: false,
+      ready: false,
+      pendingAdvance: false,
+      lastTick: null,
+      scrollPhase: 0,
+      scene: null,
+      imageBase: null
+    };
+    window.collageState = collageState;
+
+    const collageTextureKeys = ['s2', 's3'];
+    let collageAnimationId = null;
+    let collageLastAdvanceValue = 0;
+
+    const smoothStep = (t) => {
+      const x = clampRange(t, 0, 1);
+      return x * x * (3 - 2 * x);
+    };
+
+    function initHydraTexture(sourceKey, image) {
+      if (!image) return;
+      const source = window[sourceKey];
+      if (!source || typeof source.init !== 'function') return;
+      try {
+        source.init({ src: image, dynamic: false });
+      } catch (error) {
+        const originInfo = {
+          src: image?.currentSrc || image?.src || null,
+          crossOrigin: image?.crossOrigin ?? null
+        };
+        console.error(`[IMAGES] Error inicializando textura ${sourceKey}:`, error, originInfo);
+        if (error?.name === 'SecurityError' || /cross-origin/i.test(String(error?.message))) {
+          collageState.ready = false;
+          collageState.images = [];
+          logMessage('⚠ Bloqueo CORS: sirve la página e imágenes desde el mismo host');
+        }
+      }
+    }
+
+    function prepareCollageTextures() {
+      if (!collageState.images.length) {
+        collageState.ready = false;
+        return;
+      }
+      collageState.currentIndex = 0;
+      collageState.nextIndex = collageState.images.length > 1 ? 1 : 0;
+      const currentImage = collageState.images[collageState.currentIndex]?.image;
+      const nextImage = collageState.images[collageState.nextIndex]?.image || currentImage;
+      initHydraTexture(collageTextureKeys[0], currentImage);
+      initHydraTexture(collageTextureKeys[1], nextImage);
+      collageState.blend = 0;
+      collageState.transitionProgress = 0;
+      collageState.transitioning = false;
+      collageState.transitionDuration = 1.4;
+      collageState.timer = 0;
+      collageState.flash = 0;
+      collageState.texturePulse = 0;
+      collageState.zoom = 0;
+      collageState.pendingAdvance = false;
+      collageState.scrollPhase = 0;
+      collageState.lastTick = null;
+      collageState.ready = true;
+    }
+
+    function startCollageTransition() {
+      if (!collageState.scene || !collageState.ready || collageState.images.length < 2 || collageState.transitioning) {
+        collageState.pendingAdvance = false;
+        return;
+      }
+      collageState.transitioning = true;
+      collageState.transitionProgress = 0;
+      const textureParam = clamp01(collageState.scene.params?.texture ?? 0.3);
+      collageState.transitionDuration = clampRange(0.9 + (1 - textureParam) * 0.9, 0.6, 2.2);
+      collageState.timer = 0;
+      collageState.pendingAdvance = false;
+      collageState.nextIndex = (collageState.currentIndex + 1) % collageState.images.length;
+      const nextImage = collageState.images[collageState.nextIndex]?.image;
+      if (nextImage) {
+        initHydraTexture(collageTextureKeys[1], nextImage);
+      }
+      collageState.flash = Math.max(collageState.flash, 0.45);
+    }
+
+    function finishCollageTransition() {
+      collageState.transitioning = false;
+      collageState.transitionProgress = 0;
+      collageState.blend = 0;
+      collageState.currentIndex = collageState.nextIndex;
+      const currentImage = collageState.images[collageState.currentIndex]?.image;
+      if (currentImage) {
+        initHydraTexture(collageTextureKeys[0], currentImage);
+      }
+      if (collageState.images.length > 1) {
+        collageState.nextIndex = (collageState.currentIndex + 1) % collageState.images.length;
+        const upcoming = collageState.images[collageState.nextIndex]?.image || currentImage;
+        if (upcoming) {
+          initHydraTexture(collageTextureKeys[1], upcoming);
+        }
+      } else {
+        collageState.nextIndex = collageState.currentIndex;
+      }
+      collageState.texturePulse *= 0.6;
+    }
+
+    function stopCollageAnimation() {
+      collageState.active = false;
+      collageState.scene = null;
+      collageState.lastTick = null;
+      collageState.timer = 0;
+      collageState.blend = 0;
+      collageState.transitionProgress = 0;
+      collageState.transitioning = false;
+      collageState.pendingAdvance = false;
+      collageState.flash = 0;
+      collageState.zoom = 0;
+      collageState.texturePulse = 0;
+      collageState.scrollX = 0;
+      collageState.scrollY = 0;
+      collageState.tilt = 0;
+      collageLastAdvanceValue = 0;
+      if (collageAnimationId) {
+        cancelAnimationFrame(collageAnimationId);
+        collageAnimationId = null;
+      }
+    }
+
+    function updateCollageAnimation(timestamp) {
+      if (!collageState.active || !collageState.scene) {
+        collageAnimationId = null;
+        return;
+      }
+      if (!collageState.ready && collageState.images.length) {
+        prepareCollageTextures();
+      }
+      if (!collageState.lastTick) {
+        collageState.lastTick = timestamp;
+      }
+      const dt = (timestamp - collageState.lastTick) / 1000;
+      collageState.lastTick = timestamp;
+
+      const rhythmLevel = clamp01(mapLevel(bridge.getValue('rhythm', 0.1), 0.05, 1.3));
+      const bassLevel = clamp01(mapLevel(bridge.getValue('bass', 0.1), 0.05, 1.4));
+      const highLevel = clamp01(mapLevel(bridge.getValue('high', 0.1), 0.04, 1.5));
+
+      collageState.timer += dt;
+
+      const params = collageState.scene.params || {};
+      const driftParam = clamp01(params.drift ?? 0.35);
+      const textureParam = clamp01(params.texture ?? 0.3);
+      const holdParam = clamp01(params.hold ?? 0.6);
+      const advanceParam = clamp01(params.advance ?? 0);
+
+      if (advanceParam > 0.75 && collageLastAdvanceValue <= 0.75) {
+        collageState.pendingAdvance = true;
+      }
+      collageLastAdvanceValue = advanceParam;
+
+      const holdTime = clampRange(5 + holdParam * 10 - rhythmLevel * 2, 3, 15);
+
+      if (!collageState.transitioning && collageState.ready && collageState.images.length > 1) {
+        if (collageState.pendingAdvance || collageState.timer >= holdTime) {
+          startCollageTransition();
+        }
+      }
+
+      if (collageState.transitioning) {
+        collageState.transitionProgress += dt / Math.max(collageState.transitionDuration, 0.01);
+        collageState.blend = smoothStep(collageState.transitionProgress);
+        if (collageState.transitionProgress >= 1) {
+          finishCollageTransition();
+        }
+      } else {
+        collageState.blend = 0;
+      }
+
+      const scrollSpeed = 0.05 + driftParam * 0.25;
+      collageState.scrollPhase += dt * scrollSpeed;
+      collageState.scrollX = Math.sin(collageState.scrollPhase) * (0.015 + driftParam * 0.04);
+      collageState.scrollY = Math.cos(collageState.scrollPhase * 0.9) * (0.012 + driftParam * 0.03);
+      collageState.tilt = Math.sin(collageState.scrollPhase * 0.6) * (0.004 + driftParam * 0.08) + (collageState.transitioning ? 0.035 : 0);
+      collageState.zoom = clampRange(0.04 + driftParam * 0.05 + bassLevel * 0.05 + (collageState.transitioning ? 0.09 : 0), 0.02, 0.35);
+
+      const flashBase = Math.max(0, rhythmLevel - 0.55) * 0.6 + highLevel * 0.2;
+      collageState.flash = Math.max(collageState.flash * 0.88, flashBase);
+      if (collageState.transitioning) {
+        collageState.flash = Math.max(collageState.flash, 0.35);
+      }
+      collageState.texturePulse = Math.max(
+        collageState.texturePulse * 0.86,
+        textureParam * 0.3 + bassLevel * 0.2 + highLevel * 0.25
+      );
+
+      collageAnimationId = requestAnimationFrame(updateCollageAnimation);
+    }
+
+    function startCollageAnimation(scene) {
+      if (!scene) return;
+      collageState.scene = scene;
+      collageState.active = true;
+      collageState.lastTick = null;
+      collageState.timer = 0;
+      collageState.pendingAdvance = false;
+      collageState.flash = 0;
+      collageState.texturePulse = 0;
+      collageLastAdvanceValue = clamp01(scene.params?.advance ?? 0);
+      if (!collageState.ready && collageState.images.length) {
+        prepareCollageTextures();
+      }
+      if (collageAnimationId) {
+        cancelAnimationFrame(collageAnimationId);
+      }
+      collageAnimationId = requestAnimationFrame(updateCollageAnimation);
+    }
+
+    const hydra = new Hydra({
+      canvas,
+      detectAudio: false,
+      width: window.innerWidth,
+      height: window.innerHeight
+    });
+
+    window.addEventListener('resize', () => {
+      hydra.setResolution(window.innerWidth, window.innerHeight);
+    });
+
+    function logMessage(text) {
+      const time = new Date().toLocaleTimeString();
+      logElement.textContent = `[${time}] ${text}`;
+    }
+
+    const SCENE_CONFIGS = [
+      {
+        id: 'aurora',
+        name: 'Aurora Boreal',
+        defaults: {
+          pulse: 0.25,
+          warp: 0.28,
+          spark: 0.2,
+          contrast: 0.32
+        },
+        controls: {
+          pulse: { address: '/sc/aurora/pulse', min: 0, max: 1, smoothing: 0.18 },
+          warp: { address: '/sc/aurora/warp', min: 0, max: 1, smoothing: 0.2 },
+          spark: { address: '/sc/aurora/spark', min: 0, max: 1, smoothing: 0.22 },
+          contrast: { address: '/sc/aurora/contrast', min: 0, max: 1, smoothing: 0.18 }
+        },
+        build({ param, global }) {
+          const pulse = param('pulse');
+          const warp = param('warp');
+          const spark = param('spark');
+          const contrast = param('contrast');
+          const audioRhythm = () => mapLevel(global.rhythm(), 0.04, 1.2);
+          const audioBass = () => mapLevel(global.bass(), 0.05, 1.4);
+          const audioHigh = () => mapLevel(global.high(), 0.04, 1.5);
+
+          osc(() => 1.4 + audioBass() * 3.5, () => 0.05 + warp() * 0.08, () => 0.45 + warp() * 0.3)
+            .color(() => 0.3 + warp() * 0.5, 0.25, () => 0.65 + audioHigh() * 0.4)
+            .brightness(() => -0.15 + contrast() * 0.65 + audioBass() * 0.3)
+            .contrast(1.2)
+            .out(o1);
+
+          shape(3, () => 0.5 + pulse() * 0.35)
+            .scale(() => 1 + audioRhythm() * 0.35)
+            .rotate(() => time * 0.1 + audioRhythm() * 0.5)
+            .color(0.95, 0.75, 0.3)
+            .brightness(() => -0.2 + pulse() * 0.8)
+            .modulateRotate(noise(() => 2 + audioBass() * 8), () => 0.18 + spark() * 0.25)
+            .out(o2);
+
+          voronoi(() => 5 + audioHigh() * 15, () => 0.15 + spark() * 0.4, 0.9)
+            .colorama(() => 0.2 + spark() * 0.45 + audioHigh() * 0.25)
+            .brightness(() => -0.2 + contrast() * 0.5)
+            .out(o3);
+
+          src(o1)
+            .layer(
+              src(o2)
+                .scale(() => 1 + pulse() * 0.35 + audioRhythm() * 0.2)
+                .blend(src(o1), () => 0.15 + pulse() * 0.4)
+            )
+            .layer(
+              src(o3)
+                .modulateRotate(src(o1), () => 0.08 + warp() * 0.3)
+                .blend(src(o1), () => 0.2 + spark() * 0.35)
+            )
+            .contrast(() => 1.1 + contrast() * 0.6)
+            .out(o0);
+        }
+      },
+      {
+        id: 'glitchstream',
+        name: 'Glitch Stream',
+        defaults: {
+          feedback: 0.32,
+          pixelate: 0.45,
+          warp: 0.22,
+          strobe: 0.18
+        },
+        controls: {
+          feedback: { address: '/sc/glitch/feedback', min: 0, max: 1, smoothing: 0.2 },
+          pixelate: { address: '/sc/glitch/pixelate', min: 0, max: 1, smoothing: 0.18 },
+          warp: { address: '/sc/glitch/warp', min: 0, max: 1, smoothing: 0.18 },
+          strobe: { address: '/sc/glitch/strobe', min: 0, max: 1, smoothing: 0.18 }
+        },
+        build({ param, global }) {
+          const feedback = param('feedback');
+          const pixelate = param('pixelate');
+          const warp = param('warp');
+          const strobe = param('strobe');
+          const audioRhythm = () => mapLevel(global.rhythm(), 0.06, 1.5);
+          const audioHigh = () => mapLevel(global.high(), 0.05, 1.6);
+
+          // Capa base con más brillo
+          noise(() => 3 + audioHigh() * 9, () => 0.12 + warp() * 0.2)
+            .color(() => 0.3 + warp() * 0.5, () => 0.2 + warp() * 0.3, () => 0.4 + warp() * 0.4)
+            .brightness(() => -0.1 + feedback() * 0.8)
+            .contrast(1.4)
+            .out(o1);
+
+          // Pixelado más agresivo y visible
+          osc(12, 0.1, () => 0.5 + warp() * 0.18)
+            .pixelate(() => 20 + pixelate() * 180, () => 30 + pixelate() * 180)
+            .rotate(() => time * 0.22 + audioRhythm() * 0.45)
+            .color(0.9, 0.3, 0.7)
+            .brightness(() => 0.1 + strobe() * 0.6)
+            .luma(() => 0.2 + strobe() * 0.4 + audioHigh() * 0.3)
+            .out(o2);
+
+          // Modulación más visible
+          src(o1)
+            .modulate(src(o2), () => 0.15 + warp() * 0.35)
+            .out(o3);
+
+          src(o1)
+            .layer(
+              src(o2)
+                .colorama(() => 0.3 + strobe() * 0.6)
+                .blend(src(o1), () => 0.3 + feedback() * 0.4)
+            )
+            .layer(
+              src(o3)
+                .scrollX(() => Math.sin(time * 0.4) * 0.01 + audioRhythm() * 0.025)
+                .scrollY(() => Math.cos(time * 0.35) * 0.012 + warp() * 0.02)
+                .blend(src(o1), () => 0.2 + warp() * 0.35)
+            )
+            .contrast(1.3)
+            .brightness(0.15)
+            .out(o0);
+        }
+      },
+      {
+        id: 'textura',
+        name: 'Texturas Lentas',
+        defaults: {
+          grain: 0.35,
+          bloom: 0.42,
+          hue: 0.2,
+          ripple: 0.28
+        },
+        controls: {
+          grain: { address: '/sc/textura/grain', min: 0, max: 1, smoothing: 0.2 },
+          bloom: { address: '/sc/textura/bloom', min: 0, max: 1, smoothing: 0.2 },
+          hue: { address: '/sc/textura/hue', min: 0, max: 1, smoothing: 0.18 },
+          ripple: { address: '/sc/textura/ripple', min: 0, max: 1, smoothing: 0.2 }
+        },
+        build({ param, global }) {
+          const grain = param('grain');
+          const bloom = param('bloom');
+          const hue = param('hue');
+          const ripple = param('ripple');
+          const audioBass = () => mapLevel(global.bass(), 0.05, 1.4);
+          const audioHigh = () => mapLevel(global.high(), 0.04, 1.3);
+
+          gradient(() => 0.3 + hue() * 0.5)
+            .hue(() => time * 0.02 + hue() * 0.7)
+            .contrast(1.2)
+            .out(o1);
+
+          noise(() => 1.5 + grain() * 4.5 + audioBass() * 3, 0.25)
+            .brightness(() => -0.3 + grain() * 0.6)
+            .saturate(() => 1.2 + bloom() * 0.5)
+            .contrast(1.1)
+            .out(o2);
+
+          osc(() => 3 + ripple() * 5, () => 0.08 + ripple() * 0.12, () => 0.5 + bloom() * 0.4)
+            .rotate(() => time * 0.04 + audioHigh() * 0.2)
+            .brightness(() => -0.15 + bloom() * 0.5)
+            .out(o3);
+
+          src(o1)
+            .layer(
+              src(o2)
+                .modulate(noise(() => 2.5 + grain() * 10), () => 0.12 + ripple() * 0.3)
+                .blend(src(o1), () => 0.25 + grain() * 0.4)
+            )
+            .layer(
+              src(o3)
+                .modulateRotate(src(o2), () => 0.08 + ripple() * 0.3)
+                .blend(src(o1), () => 0.18 + bloom() * 0.35)
+            )
+            .colorama(() => 0.18 + hue() * 0.5)
+            .contrast(1.15)
+            .out(o0);
+        }
+      },
+      {
+        id: 'dualidades',
+        name: 'Dualidades',
+        defaults: {
+          devenir: 0.5,
+          caos: 0.5,
+          forma: 0.5,
+          speed: 0.3
+        },
+        controls: {
+          devenir: { address: '/sc/dual/devenir', min: 0, max: 1, smoothing: 0.2 },
+          caos: { address: '/sc/dual/caos', min: 0, max: 1, smoothing: 0.2 },
+          forma: { address: '/sc/dual/forma', min: 0, max: 1, smoothing: 0.2 },
+          speed: { address: '/sc/dual/speed', min: 0, max: 1, smoothing: 0.15 }
+        },
+        build({ param, global }) {
+          const devenir = param('devenir');
+          const caos = param('caos');
+          const forma = param('forma');
+          const speed = param('speed');
+          const audioRhythm = () => mapLevel(global.rhythm(), 0.05, 1.3);
+          const audioBass = () => mapLevel(global.bass(), 0.05, 1.4);
+          const audioHigh = () => mapLevel(global.high(), 0.04, 1.5);
+          osc(
+            () => 1.2 + audioRhythm() * 2.4 + speed() * 1.2,
+            () => 0.03 + speed() * 0.05,
+            () => 0.4 + caos() * 0.3
+          )
+            .rotate(() => time * (0.03 + speed() * 0.22))
+            .color(
+              () => 0.18 + devenir() * 0.45,
+              () => 0.25 + caos() * 0.4,
+              () => 0.55 + forma() * 0.35 + audioHigh() * 0.2
+            )
+            .brightness(() => -0.28 + forma() * 0.5 + audioRhythm() * 0.2)
+            .contrast(() => 1.1 + caos() * 0.5)
+            .out(o1);
+
+          noise(
+            () => 1.4 + speed() * 1.8 + audioBass() * 1.5,
+            () => 0.16 + caos() * 0.25
+          )
+            .color(() => 0.05 + devenir() * 0.08, 0.08, () => 0.14 + forma() * 0.12)
+            .brightness(() => -0.38 + devenir() * 0.35)
+            .contrast(() => 1.05 + caos() * 0.4)
+            .out(o2);
+
+          src(o1)
+            .blend(src(o2), () => 0.22 + devenir() * 0.35 + audioBass() * 0.08)
+            .modulateRotate(src(o2), () => 0.02 + speed() * 0.12)
+            .saturate(() => 1.05 + caos() * 0.35 + audioHigh() * 0.2)
+            .contrast(() => 1.08 + forma() * 0.45)
+            .brightness(() => -0.06 + devenir() * 0.12)
+            .out(o0);
+
+          src(o0)
+            .layer(
+              src(o1)
+                .scrollX(() => Math.sin(time * 0.05 + audioRhythm()) * 0.003)
+                .scrollY(() => Math.cos(time * 0.04) * 0.003)
+                .blend(src(o2), () => 0.12 + speed() * 0.08)
+            )
+            .out(o0);
+
+          solid(0, 0, 0).out(o3);
+        }
+      },
+      {
+        id: 'collage',
+        name: 'Foto Kinesis',
+        defaults: {
+          advance: 0,
+          drift: 0.35,
+          tone: 0.4,
+          texture: 0,
+          bloom: 0.35,
+          hold: 0.6
+        },
+        controls: {
+          advance: { address: '/sc/collage/advance', min: 0, max: 1, smoothing: 0.35 },
+          drift: { address: '/sc/collage/drift', min: 0, max: 1, smoothing: 0.2 },
+          tone: { address: '/sc/collage/tone', min: 0, max: 1, smoothing: 0.18 },
+          texture: { address: '/sc/collage/texture', min: 0, max: 1, smoothing: 0.22 },
+          bloom: { address: '/sc/collage/bloom', min: 0, max: 1, smoothing: 0.2 },
+          hold: { address: '/sc/collage/hold', min: 0, max: 1, smoothing: 0.2 }
+        },
+        build({ param, global }) {
+          const drift = param('drift');
+          const tone = param('tone');
+          const texture = param('texture');
+          const bloom = param('bloom');
+          const hold = param('hold');
+          const blendAmount = () => clamp01(window.collageState?.blend ?? 0);
+          const flash = () => Math.max(window.collageState?.flash ?? 0, 0);
+          const zoom = () => clampRange(window.collageState?.zoom ?? 0, 0, 0.4);
+          const scrollX = () => (window.collageState?.scrollX ?? 0) * 0.6;
+          const scrollY = () => (window.collageState?.scrollY ?? 0) * 0.6;
+          const tilt = () => (window.collageState?.tilt ?? 0) * 0.6;
+          const texturePulse = () => window.collageState?.texturePulse ?? 0;
+          const isTransitioning = window.collageState?.transitioning === true;
+
+          const cleanPrimary = src(s2)
+            .scale(() => 1 + zoom() * 0.05)
+            .rotate(() => tilt())
+            .scrollX(scrollX)
+            .scrollY(scrollY)
+            .brightness(() => bloom() * 0.1 + flash() * 0.08)
+            .contrast(() => 1 + bloom() * 0.1)
+            .saturate(() => 1 + tone() * 0.08 + flash() * 0.06);
+
+          const cleanSecondary = src(s3)
+            .scale(() => 1 + zoom() * 0.06)
+            .rotate(() => -tilt() * 0.5)
+            .scrollX(() => -scrollX())
+            .scrollY(() => -scrollY())
+            .brightness(() => bloom() * 0.1 + flash() * 0.08)
+            .contrast(() => 1 + bloom() * 0.06)
+            .saturate(() => 1 + tone() * 0.08);
+
+          const textureIntensity = () => clampRange(texture() * 0.22 + texturePulse() * 0.16, 0, 0.6);
+
+          const textureLayer = textureIntensity() < 0.02
+            ? solid(0, 0, 0, 0)
+            : noise(
+                () => 0.7 + texture() * 2.4,
+                () => 0.06 + texture() * 0.1
+              )
+                .brightness(() => -0.24 + texture() * 0.2 + flash() * 0.06)
+                .contrast(() => 1 + texture() * 0.14 + texturePulse() * 0.1)
+                .saturate(() => 1 + tone() * 0.1)
+                .color(
+                  () => 0.96 + tone() * 0.07,
+                  () => 0.96 + tone() * 0.05,
+                  () => 0.98 + tone() * 0.08
+                )
+                .luma(() => clampRange(0.16 + texture() * 0.1, 0.16, 0.42));
+
+          cleanPrimary
+            .blend(cleanSecondary, () => 0.08 + blendAmount() * 0.6)
+            .blend(textureLayer, () => textureIntensity())
+            .brightness(() => 0.05 + bloom() * 0.14 + flash() * 0.1)
+            .contrast(() => 1.05 + bloom() * 0.12 + (isTransitioning ? 0.05 : 0))
+            .saturate(() => 1 + tone() * 0.16 + (isTransitioning ? 0.04 : 0))
+            .out(o0);
+        }
+      },
+      {
+        id: 'photo',
+        name: 'Foto Perturbada',
+        defaults: {
+          distortion: 0.18,
+          glitch: 0.12,
+          shift: 0.12,
+          feedback: 0.22,
+          imageSelect: 0
+        },
+        controls: {
+          distortion: { address: '/sc/photo/distortion', min: 0, max: 1, smoothing: 0.18 },
+          glitch: { address: '/sc/photo/glitch', min: 0, max: 1, smoothing: 0.15 },
+          shift: { address: '/sc/photo/shift', min: 0, max: 1, smoothing: 0.2 },
+          feedback: { address: '/sc/photo/feedback', min: 0, max: 1, smoothing: 0.2 },
+          imageSelect: { address: '/sc/photo/image', min: 0, max: 1, smoothing: 1 }
+        },
+        build({ param, global }) {
+          const distortion = param('distortion');
+          const glitch = param('glitch');
+          const shift = param('shift');
+          const feedback = param('feedback');
+          const imageSelect = param('imageSelect');
+          const audioRhythm = () => mapLevel(global.rhythm(), 0.05, 1.4);
+          const audioBass = () => mapLevel(global.bass(), 0.05, 1.5);
+          const audioHigh = () => mapLevel(global.high(), 0.04, 1.6);
+
+          // Las imágenes ya están precargadas globalmente en s0 y s1.
+          // Si no cargaron, usar degradado neutro como fallback.
+          const selectedSource = Math.round(imageSelect()) === 0 ? s0 : s1;
+          const baseImage = imagesLoaded ? src(selectedSource) : solid(0.08, 0.08, 0.12);
+
+          baseImage
+            .scale(() => 1.005 + feedback() * 0.05 + audioBass() * 0.015)
+            .scrollX(() => Math.sin(time * 0.12) * (0.0015 + shift() * 0.008))
+            .scrollY(() => Math.cos(time * 0.1) * (0.0015 + shift() * 0.008))
+            .contrast(() => 1.08 + feedback() * 0.35)
+            .saturate(() => 1.02 + shift() * 0.4)
+            .out(o1);
+
+          noise(() => 1.7 + audioBass() * 5.5 + distortion() * 5.5, () => 0.06 + distortion() * 0.2)
+            .brightness(() => -0.32 + distortion() * 0.42)
+            .contrast(() => 1.32 + audioRhythm() * 0.5)
+            .color(() => 0.55 + distortion() * 0.2, 0.25, () => 0.75 + audioHigh() * 0.25)
+            .out(o2);
+
+          voronoi(() => 7 + audioHigh() * 16 + glitch() * 12, () => 0.035 + glitch() * 0.2, 0.8)
+            .rotate(() => time * (0.05 + glitch() * 0.12))
+            .brightness(() => -0.3 + glitch() * 0.38)
+            .contrast(() => 1.18 + glitch() * 0.45)
+            .pixelate(() => 160 + glitch() * 320, () => 160 + glitch() * 320)
+            .out(o3);
+
+          src(o1)
+            .modulate(src(o2), () => 0.025 + distortion() * 0.24 + audioBass() * 0.12)
+            .modulateScrollX(src(o3), () => 0.0025 + glitch() * 0.01)
+            .modulateScrollY(src(o3), () => 0.002 + glitch() * 0.009)
+            .layer(
+              src(o1)
+                .contrast(() => 1.02 + feedback() * 0.4)
+                .brightness(() => 0.02 + feedback() * 0.18)
+                .blend(
+                  src(o3)
+                    .colorama(() => 0.035 + shift() * 0.22)
+                    .brightness(() => -0.08 + glitch() * 0.25 + audioHigh() * 0.12),
+                  () => 0.09 + glitch() * 0.18 + audioHigh() * 0.1
+                )
+            )
+            .modulateHue(src(o2), () => 0.015 + shift() * 0.12)
+            .brightness(() => 0.06 + audioRhythm() * 0.12)
+            .contrast(() => 1.12 + feedback() * 0.35)
+            .saturate(() => 1.12 + shift() * 0.48)
+            .out(o0);
+        }
+      }
+    ];
+
+    function buildSceneControlEndpoints(configs) {
+      const endpoints = [];
+      configs.forEach((cfg) => {
+        Object.entries(cfg.controls || {}).forEach(([key, spec]) => {
+          endpoints.push({
+            address: spec.address,
+            key: `${cfg.id}.${key}`,
+            initial: typeof spec.initial === 'number' ? spec.initial : cfg.defaults?.[key] ?? 0,
+            smoothing: typeof spec.smoothing === 'number' ? spec.smoothing : 0.2,
+            min: spec.min,
+            max: spec.max
+          });
+        });
+      });
+      return endpoints;
+    }
+
+    const BASE_ENDPOINTS = [
+      { address: '/sc/rhythm', key: 'rhythm', initial: 0.1, smoothing: 0.2, min: 0, max: 1 },
+      { address: '/sc/bass', key: 'bass', initial: 0.1, smoothing: 0.2, min: 0, max: 1 },
+      { address: '/sc/high', key: 'high', initial: 0.1, smoothing: 0.15, min: 0, max: 1 },
+      {
+        address: '/sc/scene',
+        key: 'scene',
+        initial: 0,
+        smoothing: 1,
+        min: 0,
+        max: SCENE_CONFIGS.length - 1,
+        transform: (_, raw) => (typeof raw === 'number' ? Math.round(raw) : 0)
+      },
+      { address: '/sc/dual/mutacion', key: 'dualidades.mutacion', initial: 0, smoothing: 0.25, min: 0, max: 1 },
+      { address: '/sc/dual/glitchBoost', key: 'dualidades.glitchBoost', initial: 0, smoothing: 0.2, min: 0, max: 1 },
+      { address: '/sc/dual/palette', key: 'dualidades.palette', initial: 0, smoothing: 0.2, min: 0, max: 1 }
+    ];
+
+    const bridge = createOSCBridge({
+      url: 'ws://127.0.0.1:8080',
+      autoStart: false,
+      endpoints: [...BASE_ENDPOINTS, ...buildSceneControlEndpoints(SCENE_CONFIGS)],
+      onValues: (key, value) => {
+        // Solo loguear cambios de escena, no cada valor OSC para evitar saturar la consola
+        if (key === 'scene') {
+          console.log('[OSC] Cambio de escena:', value);
+          logMessage(`[OSC] Escena cambiada a: ${value}`);
+        }
+      }
+    });
+
+    bridge.onStatus((state) => {
+      const labels = {
+        idle: 'Inactivo',
+        connecting: 'Conectando',
+        connected: 'Conectado',
+        disconnected: 'Desconectado',
+        error: 'Error'
+      };
+
+      hudStatus.textContent = labels[state] || state;
+      hudStatus.style.color = state === 'connected' ? '#7affa1' : '#ffd479';
+    });
+
+    // Detección de valores congelados
+    let lastValues = { rhythm: 0.1, bass: 0.1, high: 0.1 };
+    let frozenCounter = 0;
+    const FROZEN_THRESHOLD = 50; // 50 mensajes sin cambio = congelado
+
+    bridge.on('rhythm', (value) => {
+      valueRhythm.textContent = value.toFixed(4);
+      valueRhythm.style.transform = `scale(${1 + value * 0.12})`;
+      
+      if (Math.abs(value - lastValues.rhythm) < 0.001) {
+        frozenCounter++;
+        if (frozenCounter > FROZEN_THRESHOLD) {
+          valueRhythm.style.color = '#ff9966'; // Naranja = valores congelados
+          valueRhythm.title = '⚠️ Valores congelados - verifica SuperCollider';
+        }
+      } else {
+        frozenCounter = 0;
+        valueRhythm.style.color = '#7affa1'; // Verde = valores cambiando
+        valueRhythm.title = '✓ Recibiendo datos variables';
+      }
+      lastValues.rhythm = value;
+    });
+
+    bridge.on('bass', (value) => {
+      valueBass.textContent = value.toFixed(4);
+      valueBass.style.transform = `scale(${1 + value * 0.12})`;
+      
+      if (Math.abs(value - lastValues.bass) < 0.001) {
+        valueBass.style.color = '#ff9966';
+      } else {
+        valueBass.style.color = '#7affa1';
+      }
+      lastValues.bass = value;
+    });
+
+    bridge.on('high', (value) => {
+      valueHigh.textContent = value.toFixed(4);
+      valueHigh.style.transform = `scale(${1 + value * 0.12})`;
+      
+      if (Math.abs(value - lastValues.high) < 0.001) {
+        valueHigh.style.color = '#ff9966';
+      } else {
+        valueHigh.style.color = '#7affa1';
+      }
+      lastValues.high = value;
+    });
+
+    function clearBuffers() {
+      solid(0, 0, 0, 1).out(o0);
+      solid(0, 0, 0, 1).out(o1);
+      solid(0, 0, 0, 1).out(o2);
+      solid(0, 0, 0, 1).out(o3);
+    }
+
+    function createScene(config, { bridge }) {
+      const params = { ...(config.defaults || {}) };
+      const param = (key, fallback = 0) => () => (typeof params[key] === 'number' ? params[key] : fallback);
+      const context = {
+        param,
+        global: {
+          rhythm: () => bridge.getValue('rhythm', 0.1),
+          bass: () => bridge.getValue('bass', 0.1),
+          high: () => bridge.getValue('high', 0.1)
+        }
+      };
+
+      let isActive = false;
+      let hydraCode = null;
+
+      return {
+        id: config.id,
+        name: config.name,
+        controls: config.controls || {},
+        params,
+        activate() {
+          isActive = true;
+          clearBuffers();
+          console.log(`[SCENE] Activando escena: ${config.name}`);
+          
+          // Ejecutar build() que configura el código Hydra
+          // Este código se ejecutará en cada frame automáticamente
+          if (typeof config.build === 'function') {
+            try {
+              config.build(context);
+              console.log(`[SCENE] ✓ Código Hydra ejecutado para: ${config.name}`);
+            } catch (e) {
+              console.error(`[SCENE] ✗ Error en build() de ${config.name}:`, e);
+            }
+          }
+        },
+        deactivate() {
+          isActive = false;
+        },
+        update(updates = {}) {
+          Object.keys(updates).forEach((key) => {
+            params[key] = updates[key];
+          });
+        }
+      };
+    }
+
+    const scenes = SCENE_CONFIGS.map((cfg) => createScene(cfg, { bridge }));
+    const sceneButtons = [];
+
+    function renderSceneButtons() {
+      sceneButtonsContainer.innerHTML = '';
+      scenes.forEach((scene, index) => {
+        const button = document.createElement('button');
+        button.dataset.sceneIndex = index;
+        button.textContent = `${index} · ${scene.name}`;
+        button.addEventListener('click', () => activateScene(index));
+        sceneButtonsContainer.appendChild(button);
+        sceneButtons[index] = button;
+      });
+    }
+
+    function markSceneButtons(activeIndex) {
+      sceneButtons.forEach((button, index) => {
+        if (!button) return;
+        button.dataset.active = index === activeIndex ? 'true' : 'false';
+      });
+    }
+
+    let currentSceneIndex = -1;
+
+    function activateScene(index) {
+      const safeIndex = Math.max(0, Math.min(index, scenes.length - 1));
+      if (currentSceneIndex === safeIndex) return;
+
+      const nextScene = scenes[safeIndex];
+      if (!nextScene) return;
+
+      // Desactivar escena anterior si existe
+      if (currentSceneIndex >= 0 && scenes[currentSceneIndex]) {
+        const previousScene = scenes[currentSceneIndex];
+        if (typeof previousScene.deactivate === 'function') {
+          previousScene.deactivate();
+        }
+        if (dualidadesOverlay && previousScene.id === 'dualidades') {
+          dualidadesOverlay.dataset.active = 'false';
+          resetDualidadesOverlay();
+        }
+        if (previousScene.id === 'collage') {
+          stopCollageAnimation();
+        }
+      }
+
+      currentSceneIndex = safeIndex;
+      if (dualidadesOverlay) {
+        const isDual = nextScene.id === 'dualidades';
+        dualidadesOverlay.dataset.active = isDual ? 'true' : 'false';
+        if (isDual) {
+          startDualidadesOverlayAnimation(nextScene);
+        } else {
+          resetDualidadesOverlay();
+        }
+      }
+      const isCollage = nextScene.id === 'collage';
+      if (!isCollage) {
+        stopCollageAnimation();
+      }
+      nextScene.activate();
+      if (isCollage) {
+        startCollageAnimation(nextScene);
+      }
+      sceneLabel.textContent = `${safeIndex} · ${nextScene.name}`;
+      markSceneButtons(safeIndex);
+      logMessage(`Escena ${safeIndex} activada · ${nextScene.name}`);
+      console.log(`[SCENE] → Escena activa: ${nextScene.name}`);
+    }
+
+    scenes.forEach((scene) => {
+      Object.keys(scene.controls).forEach((key) => {
+        const oscKey = `${scene.id}.${key}`;
+        bridge.on(oscKey, (value) => {
+          scene.update({ [key]: value });
+          if (
+            scene.id === 'dualidades' &&
+            dualidadesOverlay &&
+            currentSceneIndex >= 0 &&
+            scenes[currentSceneIndex] === scene
+          ) {
+            updateDualidadesOverlayScene(scene);
+          }
+        });
+      });
+    });
+
+    ['dualidades.mutacion', 'dualidades.glitchBoost', 'dualidades.palette'].forEach((key) => {
+      bridge.on(key, () => {
+        if (!dualidadesOverlay || dualidadesOverlay.dataset.active !== 'true') return;
+        if (dualidadesOverlayAnimationId) {
+          scheduleDualidadesCycle();
+        }
+        const activeScene = currentSceneIndex >= 0 ? scenes[currentSceneIndex] : null;
+        if (activeScene && activeScene.id === 'dualidades') {
+          updateDualidadesOverlayScene(activeScene);
+        }
+      });
+    });
+
+    bridge.on('scene', (value) => {
+      activateScene(value);
+    });
+
+    renderSceneButtons();
+
+    logMessage('Escenas listas. Controla cada capa con sus mensajes OSC específicos.');
+
+    // Precargar imágenes ANTES de activar cualquier escena
+    let imagesLoaded = false;
+
+    const searchParams = (() => {
+      try {
+        return new URLSearchParams(window.location.search);
+      } catch (_) {
+        return new URLSearchParams();
+      }
+    })();
+
+    const imageDebug = searchParams.has('debugImages') || window.DEBUG_IMAGES === true;
+
+    const origin = window.location.origin;
+
+    const candidateStrings = [
+      new URL('../../images/', window.location.href).href,
+      `${origin}/images/`,
+      '/images/',
+      '../../images/'
+    ];
+
+    const baseCandidates = Array.from(new Set(candidateStrings))
+      .map((base) => {
+        try {
+          const asUrl = new URL(base, window.location.href);
+          return asUrl.origin === origin ? asUrl.href : null;
+        } catch (error) {
+          return base; // Relativos se mantienen tal cual
+        }
+      })
+      .filter(Boolean);
+
+    const uniqueBaseCandidates = Array.from(new Set(baseCandidates));
+
+    console.info('[IMAGES] Bases consideradas:', uniqueBaseCandidates);
+
+    const imagePaths = uniqueBaseCandidates.map((base) => ({
+      s0: base.endsWith('/') ? `${base}cdv.jpeg` : `${base}cdv.jpeg`,
+      s1: base.endsWith('/') ? `${base}cdv2.jpeg` : `${base}cdv2.jpeg`
+    }));
+
+    const collageManifestFiles = ['manifest.json', 'collage.json', 'index.json', 'images.json', 'list.json'];
+    const collageFallbackFiles = [
+      'cdv.jpeg',
+      'cdv2.jpeg',
+      'cdv3.jpeg',
+      'cdv4.jpeg',
+      'cdv5.jpeg',
+      'cdv.jpg',
+      'cdv2.jpg',
+      'collage1.jpeg',
+      'collage2.jpeg',
+      'collage3.jpeg',
+      'collage1.jpg',
+      'collage2.jpg',
+      'collage3.jpg'
+    ];
+
+    function joinImageUrl(base, file) {
+      if (!file || typeof file !== 'string') return null;
+      if (/^https?:/i.test(file)) return file;
+      if (!base || typeof base !== 'string') return file;
+      const normalizedBase = base.endsWith('/') ? base : `${base}/`;
+      const normalizedFile = file.startsWith('/') ? file.slice(1) : file;
+      return `${normalizedBase}${normalizedFile}`;
+    }
+
+    function loadImageElement(url) {
+      return new Promise((resolve, reject) => {
+        if (!url) {
+          reject(new Error('URL de imagen inválida'));
+          return;
+        }
+        const img = new Image();
+        if (/^https?:/i.test(url)) {
+          try {
+            const targetOrigin = new URL(url, window.location.href).origin;
+            if (targetOrigin !== window.location.origin) {
+              img.crossOrigin = 'anonymous';
+            }
+          } catch (_) {
+            img.crossOrigin = 'anonymous';
+          }
+        }
+        img.decoding = 'async';
+
+        let timeoutId = null;
+
+        const cleanup = () => {
+          img.onload = null;
+          img.onerror = null;
+          if (timeoutId) clearTimeout(timeoutId);
+        };
+
+        img.onload = () => {
+          cleanup();
+          resolve(img);
+        };
+
+        img.onerror = (err) => {
+          cleanup();
+          reject(new Error(`No se pudo cargar ${url}: ${err?.message || 'evento de error'}`));
+        };
+
+        timeoutId = setTimeout(() => {
+          cleanup();
+          reject(new Error(`Timeout cargando imagen ${url}`));
+        }, 5000);
+
+        const cacheBuster = url.includes('?') ? `&_=${Date.now()}` : `?_=${Date.now()}`;
+        img.src = `${url}${cacheBuster}`;
+      });
+    }
+
+    async function fetchCollageManifest(base) {
+      for (const manifestName of collageManifestFiles) {
+        const manifestUrl = joinImageUrl(base, manifestName);
+        if (!manifestUrl) continue;
+        try {
+          const response = await fetch(manifestUrl, { cache: 'no-store' });
+          if (!response.ok) continue;
+          const contentType = response.headers.get('content-type') || '';
+          if (!/application\/json/i.test(contentType)) {
+            continue;
+          }
+          const data = await response.json();
+          if (Array.isArray(data)) {
+            return data.filter((item) => typeof item === 'string' && item.trim().length);
+          }
+        } catch (error) {
+          console.warn(`[IMAGES] Manifesto collage falló ${manifestUrl}:`, error);
+        }
+      }
+      return null;
+    }
+
+    async function loadCollageImagesFromList(base, fileList, seen = new Set()) {
+      const results = [];
+      if (!Array.isArray(fileList) || !fileList.length) {
+        return results;
+      }
+
+      for (const fileName of fileList) {
+        const trimmed = typeof fileName === 'string' ? fileName.trim() : '';
+        if (!trimmed) continue;
+        const url = joinImageUrl(base, trimmed);
+        if (!url || seen.has(url)) continue;
+        try {
+          const image = await loadImageElement(url);
+          seen.add(url);
+          results.push({ name: trimmed, url, image });
+        } catch (error) {
+          if (imageDebug) {
+            console.debug(`[IMAGES] Collage omitido: ${url}`, error?.message || error);
+          }
+        }
+      }
+
+      return results;
+    }
+
+    async function tryLoadCollageFromBase(base) {
+      const seen = new Set();
+      const customList = typeof window !== 'undefined' && Array.isArray(window.COLLAGE_IMAGES)
+        ? window.COLLAGE_IMAGES
+        : null;
+
+      if (customList?.length) {
+        const customImages = await loadCollageImagesFromList(base, customList, seen);
+        if (customImages.length) {
+          return customImages;
+        }
+      }
+
+      const manifestList = await fetchCollageManifest(base);
+      if (manifestList?.length) {
+        const manifestImages = await loadCollageImagesFromList(base, manifestList, seen);
+        if (manifestImages.length) {
+          return manifestImages;
+        }
+      }
+
+      const fallbackImages = await loadCollageImagesFromList(base, collageFallbackFiles, seen);
+      return fallbackImages;
+    }
+
+    async function loadCollageImageSet() {
+      for (const base of uniqueBaseCandidates) {
+        try {
+          const images = await tryLoadCollageFromBase(base);
+          if (images.length) {
+            collageState.images = images;
+            prepareCollageTextures();
+            collageState.imageBase = base;
+            console.log('[IMAGES] ✓ Collage listo con', images.length, 'imágenes');
+            logMessage(`✓ Collage: ${images.length} imágenes cargadas`);
+            if (collageState.active && !collageAnimationId) {
+              collageAnimationId = requestAnimationFrame(updateCollageAnimation);
+            }
+            return true;
+          }
+        } catch (error) {
+          console.warn(`[IMAGES] Error cargando collage desde ${base}:`, error);
+        }
+      }
+      console.warn('[IMAGES] ⚠ No se pudieron cargar imágenes para collage');
+      logMessage('⚠ Collage: sin imágenes disponibles');
+      return false;
+    }
+
+    function loadHydraImage(sourceKey, url) {
+      const source = window[sourceKey];
+      return new Promise((resolve, reject) => {
+        if (!source || typeof source.init !== 'function') {
+          reject(new Error(`Hydra source ${sourceKey} no disponible`));
+          return;
+        }
+
+        const img = new Image();
+        if (/^https?:/i.test(url)) {
+          try {
+            const targetOrigin = new URL(url, window.location.href).origin;
+            if (targetOrigin !== window.location.origin) {
+              img.crossOrigin = 'anonymous';
+            }
+          } catch (_) {
+            img.crossOrigin = 'anonymous';
+          }
+        }
+        img.decoding = 'async';
+
+        const cleanup = () => {
+          img.onload = null;
+          img.onerror = null;
+        };
+
+        img.onload = () => {
+          try {
+            source.init({ src: img, dynamic: false });
+            cleanup();
+            resolve({ key: sourceKey, url, image: img });
+          } catch (err) {
+            cleanup();
+            reject(err instanceof Error ? err : new Error(String(err)));
+          }
+        };
+
+        img.onerror = (err) => {
+          cleanup();
+          reject(new Error(`No se pudo cargar ${url}: ${err?.message || 'evento de error'}`));
+        };
+
+        // Timeout de 5 segundos para detectar bloqueos silenciosos
+        const timeout = setTimeout(() => {
+          cleanup();
+          reject(new Error(`Timeout cargando imagen ${url}`));
+        }, 5000);
+
+        img.onload = ((originalOnLoad) => (...args) => {
+          clearTimeout(timeout);
+          originalOnLoad(...args);
+        })(img.onload);
+
+        img.onerror = ((originalOnError) => (...args) => {
+          clearTimeout(timeout);
+          originalOnError(...args);
+        })(img.onerror);
+
+        // Añadir parámetro anti-cache para evitar servir versiones corruptas
+        const cacheBuster = url.includes('?') ? `&_=${Date.now()}` : `?_=${Date.now()}`;
+        img.src = `${url}${cacheBuster}`;
+      });
+    }
+
+    let pathIndex = 0;
+    async function tryLoadImages() {
+      const paths = imagePaths[pathIndex];
+      console.log(`[IMAGES] Intentando cargar desde: ${paths.s0}`);
+
+      try {
+        const [img0, img1, img2, img3] = await Promise.all([
+          loadHydraImage('s0', paths.s0),
+          loadHydraImage('s1', paths.s1),
+          loadHydraImage('s2', paths.s0),
+          loadHydraImage('s3', paths.s1)
+        ]);
+
+        imagesLoaded = true;
+        console.log('[IMAGES] ✓ Imágenes cargadas exitosamente');
+        logMessage('✓ Imágenes: cdv.jpeg, cdv2.jpeg cargadas');
+
+        collageState.images = [
+          { name: 'cdv', url: img0.url, image: img2.image || img0.image },
+          { name: 'cdv2', url: img1.url, image: img3.image || img1.image }
+        ];
+        prepareCollageTextures();
+      } catch (e) {
+        console.error('[IMAGES] Error:', e);
+        if (pathIndex < imagePaths.length - 1) {
+          pathIndex++;
+          tryLoadImages();
+        } else {
+          console.warn('[IMAGES] ⚠ No se pudieron cargar imágenes, usando fallback');
+          logMessage('⚠ Imágenes no disponibles - usando fallback');
+          imagesLoaded = false;
+        }
+      }
+    }
+
+    tryLoadImages();
+  loadCollageImageSet();
+
+    activateScene(0);
+    bridge.start();
+
+    window.visualScenes = {
+      activate: activateScene,
+      list: scenes,
+      current: () => (currentSceneIndex >= 0 ? scenes[currentSceneIndex] : null)
+    };
+  </script>
+</body>
+
+</html>
