@@ -319,7 +319,7 @@ Ejecuta esto para una prueba completa en **5 minutos**:
 
 ```bash
 # Terminal 1: Proxy con debug
-cd hydra && DEBUG=true npm run dev
+cd osc-proxy && DEBUG=true npm run dev
 
 # Terminal 2: Servidor HTTP
 python3 -m http.server 8000

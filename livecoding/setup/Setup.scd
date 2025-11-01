@@ -60,7 +60,7 @@ Task({
 			Buffer.read(s,sf.fullPath);
 		});
 	)});
-	("SynthDefs.scd").loadRelative;
+	("synthdefs.scd").loadRelative;
 	//loads snippets from setup folder
 	("Snippets.scd").loadRelative;
 	//wait, because otherwise it won't work for some reason

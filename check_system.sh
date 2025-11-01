@@ -35,7 +35,7 @@ if [ ! -z "$PROXY_PID" ]; then
     echo -e "     Comando: ${PROXY_CMD}"
 else
     echo -e "  ${RED}✗${NC} Proxy NO está corriendo en puerto 8080"
-    echo -e "     ${YELLOW}→${NC} Ejecuta: cd hydra && node osc_ws_proxy.js"
+    echo -e "     ${YELLOW}→${NC} Ejecuta: cd osc-proxy && node osc_ws_proxy.js"
 fi
 echo ""
 
@@ -97,7 +97,7 @@ ISSUES=0
 # Proxy OSC
 if [ -z "$PROXY_PID" ]; then
     echo -e "${RED}✗${NC} Proxy OSC NO está corriendo"
-    echo -e "   Solución: ${YELLOW}cd hydra && node osc_ws_proxy.js${NC}"
+    echo -e "   Solución: ${YELLOW}cd osc-proxy && node osc_ws_proxy.js${NC}"
     ISSUES=$((ISSUES + 1))
 else
     echo -e "${GREEN}✓${NC} Proxy OSC funcionando"

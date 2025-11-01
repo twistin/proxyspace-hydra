@@ -37,7 +37,7 @@ fi
 
 # 3. Instalar dependencias Node
 echo -e "\n${CYAN}[3/5] Instalando dependencias...${NC}"
-cd hydra
+cd osc-proxy
 if [ -f "package-lock.json" ]; then
     npm ci --silent
 else
@@ -100,7 +100,7 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
     # macOS - usar Terminal.app
     osascript <<APPLESCRIPT
 tell application "Terminal"
-    do script "cd $(pwd)/hydra && npm run proxy"
+    do script "cd $(pwd)/osc-proxy && npm run proxy"
     delay 2
     do script "cd $(pwd) && python3 -m http.server 8000"
 end tell
@@ -112,7 +112,7 @@ APPLESCRIPT
 else
     # Linux/otros - lanzar en background
     echo -e "${GREEN}Iniciando proxy OSC...${NC}"
-    (cd hydra && npm run proxy) &
+    (cd osc-proxy && npm run proxy) &
     PROXY_PID=$!
     
     echo -e "${GREEN}Iniciando servidor HTTP...${NC}"
@@ -164,7 +164,7 @@ echo -e "${CYAN}Siguiente paso:${NC}"
 echo "  ./start.sh               # Inicia proxy + servidor HTTP"
 echo ""
 echo -e "${CYAN}O manualmente:${NC}"
-echo "  cd hydra && npm run proxy    # Terminal 1"
+echo "  cd osc-proxy && npm run proxy    # Terminal 1"
 echo "  python3 -m http.server 8000  # Terminal 2"
 echo "  # Abre SuperCollider y ejecuta scd/sound2.scd"
 echo ""

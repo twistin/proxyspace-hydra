@@ -1,25 +1,7 @@
 // =======================================================
 // === TEST DE EFECTOS LANDSCAPES (Erosión Sonora) ===
 // =======================================================
-(
-var addr;
-addr = topEnvironment[\hydraAddr] ?? { NetAddr("127.0.0.1", 57122) };
-topEnvironment[\testAddr] = addr;
-"✅ NetAddr configurado".postln;
-)
 
-
-// Test rápido de kick
-topEnvironment[\testAddr].sendMsg("/kick");
-
-// Test de erosión
-topEnvironment[\testAddr].sendMsg("/bass_level", 0.6);
-
-// Test de revelación
-topEnvironment[\testAddr].sendMsg("/melody_note", 0.8);
-
-// Test de ondulación
-topEnvironment[\testAddr].sendMsg("/texture", 0.5);
 // 1. Definir NetAddr FUERA del ProxySpace usando topEnvironment
 // IMPORTANTE: No usar ~addr porque estamos en ProxySpace
 (
@@ -40,7 +22,7 @@ topEnvironment[\testAddr].sendMsg("/scene", 0); // 0 = LANDSCAPES
 // TEST 1: Kick (cambiar imagen + activar efectos)
 (
 topEnvironment[\testAddr].sendMsg("/kick");
-"✅ KICK enviado - imagen debería cambiar".postln;1
+"✅ KICK enviado - imagen debería cambiar".postln;
 )
 
 // TEST 2: Bass Level (erosión + blur)
@@ -90,16 +72,16 @@ fork {
 fork {
 	var addr = topEnvironment[\testAddr];
 	"🎬 Iniciando secuencia de prueba LANDSCAPES".postln;
-
+	
 	// Paso 1: Imagen nítida (sin efectos)
 	"1. Imagen nítida inicial (5 seg)".postln;
 	5.wait;
-
+	
 	// Paso 2: Activar efectos con kick
 	"2. KICK - activar efectos".postln;
 	addr.sendMsg("/kick");
 	2.wait;
-
+	
 	// Paso 3: Erosión progresiva (bass)
 	"3. Erosión progresiva (bass 0 → 0.8)".postln;
 	10.do { |i|
@@ -107,7 +89,7 @@ fork {
 		addr.sendMsg("/bass_level", val);
 		0.4.wait;
 	};
-
+	
 	// Paso 4: Revelación + color (melody)
 	"4. Revelación + color (melody 0.3 → 1.0)".postln;
 	10.do { |i|
@@ -115,7 +97,7 @@ fork {
 		addr.sendMsg("/melody_note", val);
 		0.4.wait;
 	};
-
+	
 	// Paso 5: Ondulación (texture)
 	"5. Wave displacement (texture 0 → 0.7)".postln;
 	10.do { |i|
@@ -123,21 +105,21 @@ fork {
 		addr.sendMsg("/texture", val);
 		0.4.wait;
 	};
-
+	
 	// Paso 6: Combinar todo
 	"6. Combinación (3 seg)".postln;
 	addr.sendMsg("/bass_level", 0.6);
 	addr.sendMsg("/melody_note", 0.8);
 	addr.sendMsg("/texture", 0.5);
 	3.wait;
-
+	
 	// Paso 7: Decay (dejar que se desvanezca)
 	"7. Decay automático (5 seg)".postln;
 	addr.sendMsg("/bass_level", 0.0);
 	addr.sendMsg("/melody_note", 0.3);
 	addr.sendMsg("/texture", 0.0);
 	5.wait;
-
+	
 	"✅ Secuencia completa finalizada".postln;
 };
 )

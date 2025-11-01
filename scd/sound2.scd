@@ -19,7 +19,9 @@ CmdPeriod.doOnce({
 )
 
 // Inicia el ProxySpace y el Servidor
-p = ProxySpace(server:s.boot, clock: t).push;
+//p = ProxySpace(server:s.boot, clock: t).push;
+
+("../Setup/Setup.scd").loadRelative;
 
 
 // =======================================================
@@ -29,11 +31,12 @@ p = ProxySpace(server:s.boot, clock: t).push;
 //// BUFFER (Mantener aquí tus buffers de audio si los usas)
 e = ();
 e.buf=();
-e.buf.path = PathName(thisProcess.nowExecutingPath).parentPath ++ "/Users/sdcarr/Desktop/My-setup-sc-live-coding/samples/set1/set-sounds/";
+e.buf.path = PathName(thisProcess.nowExecutingPath).parentPath ++"../samples/set1/set-sounds/" ;
 PathName(e.buf.path).entries.collect({
 	arg n,i;
 	e.buf[i] = Buffer.read(s,n.fullPath);
 })
+
 
 
 ////////
@@ -60,7 +63,7 @@ PathName(e.buf.path).entries.collect({
 });
 
 // Conexión de la Señal al Mix Bus
-~mix = {~sn +~h + ~t5 + ~r3 + ~a +~g3+  (~k.ar(2)?0)}; // Suma ~k si existe
+~mix = {~r5 + ~sn + ~h + ~t5 + ~r3 + ~a +~g3+  (~k.ar(2)?0)}; // Suma ~k si existe
 
 // Definición y Ejecución de la Reverb (~verb)
 (
@@ -157,83 +160,25 @@ OSCdef(\sendMelody, { |msg|
 "▶️  Ejecuta: ~a1.resume".postln;
 // --- FIN SECCIÓN OSC ---
 
-~sn.play
-
 ~k = Pbind(\instrument,\bplay,\buf,d["k"][0],\dur,1,\amp,1);
-~sn = Pbind(\instrument,\bplay,\buf,d["s"][2],\dur,2,\amp,1);
-~k.clear
-~sn.play
-~g3[0] = Pbind(
-	\instrument, \bufsynth,
-\buf, Pxrand(d["glitch4"], inf),
-	\dur, 0.25,
-	\rate, Pwhite(0.5,1.5,inf),
-	\amp,1,
-	\atk, 0.05,
-	\sus, 0.04,
-	\rel, 0.005
-)
+~sn = Pbind(\instrument,\bplay,\buf,d["s"][0],\dur,2,\amp,1);
 
-~g3[0].play
- ~t5.pl
-1122
-
-~g3.stop
-~m3.play
-~m3[0] = Pbind(
-
-	\instrument, \plucking,
-	\scale, Scale.gong.tuning_(just),
-	\octave, 4,
-	\degree, Pseq([ 0, 2, 4, 7, 9 ], inf), // four main notes
-	\mtranspose, Pseq([Pseq([0],3),Pseq([-5],3)],inf), // switched mode every 3 notes (*2)
-
-	\gtranspose, Pseq([Pseq([0],36),Pseq([4],36),Pseq([[-3]],36),Pseq([2],36)],inf),
-	\ctranspose, Pser([Pseries(-4,1,6) +.x Pseq([0], 144)],1),
-
-	\coef, Pser([Prand([0.2,0.3,0.4,0.5],1), Prand([0.8,0.7,0.6,0.5],11)], inf),
-	\dur, Prand([0.25,0.26,0.24,0.255,0.255,0.25], inf) * 0.9,
-	\decay, Prand([1,2,3,4,5], inf),
-	\out, b,
-    \amp, 1,
-)
-
-
-~h.play;
-~h = Pbind(\instrument,\bplay,\buf,d["ch"][0],\dur,0.25,\amp,Pexprand(0.5,1));
-~b6.clear(4)
-~b6[0] =Pbind(
-	\instrument, \subBass2,
-	\scale, Scale.minorPentatonic,
-	\degree, Prand([0, [3,11], 7, [5,13],  10 ],inf),
-	\octave, [2,3,4],
-	\dur, Pseq([0.25], inf),
-	\amp, 0.09,
-	\level, 1.5,
-	\atk, 0,
-	\sus, 0,
-	\rel, 0.75,
-	\curve,-6,
-	\pan,Pwhite(-3,-3,inf)
-)
-~b6.stop
-
-~r3[0] =Pbind(
+~r5[0] =Pbind(
 		\instrument, \bufsynth,
 
-       \buf, Pxrand(d["shout"],inf),
+        \buf, Pxrand(d["set-sounds"],inf),
 		\dur, 0.25,
-		\rate, Pwhite(1.0,5.0,inf),
-		\spos,0,
-		\amp, 14.dbamp,
-		\atk, 0.5,
+		\rate, Pwhite(0.8,1.5,inf),
+		\spos,Pwhite(0.0,0.8,inf),
+		\amp, 1.dbamp,
+		\atk, 0.05,
 		\sus, Pwhite(0.0,0.15),
-		\rel, 0.1,
+		\rel, 0.5,
 		\cur,1,
 	\pan, Prand([-1,0, 1],inf)
 
 	)
 
 
-~r3.play
-~strings.clear(4)
+	~r5.play
+

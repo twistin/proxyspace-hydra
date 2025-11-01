@@ -5,9 +5,7 @@
 // Concepto: Demostración de flujo LANDSCAPES → DUALISMOS
 // Notas: Ejemplo completo con comentarios explicativos
 // ═══════════════════════════════════════════════════════════════
-~bass_level[0] = { LFNoise1.kr(0.5).range(0, 0.6) };
-~melody_note[0] = { LFNoise1.kr(0.2).range(0.3, 1.0) };
-~texture_level[0] = { LFNoise1.kr(0.3).range(0, 0.5) };
+
 // ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
 // ┃ 🚀 ARRANQUE RÁPIDO                                         ┃
 // ┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫
@@ -29,7 +27,7 @@
 fork {
     "🚀 Arrancando proxy Node.js...".postln;
     (thisProcess.nowExecutingPath.dirname.dirname +/+ "start_proxy.sh").unixCmd;
-
+    
     // Esperar 2 segundos a que arranque el proxy
     2.wait;
     "✅ Proxy listo para recibir OSC".postln;
@@ -75,7 +73,7 @@ ServerQuit.add({
     sig = SinOsc.ar(freq, mul: 0.1);
     sig = sig + LFNoise1.ar(0.5, 0.2); // Textura de ruido
     sig = FreeVerb.ar(sig, 0.8, 0.9, 0.5); // Reverb profunda
-    Splay.ar(sig) ;
+    Splay.ar(sig) * 0.3;
 };
 ~ambient.play;
 
@@ -166,7 +164,7 @@ Pdef(\kickPattern,
     var sig, env, freq;
     freq = [60, 61].midicps;
     env = LFPulse.kr(0.5, 0, 0.3); // Pulso lento
-    sig = LFTri.ar(freq) * env * 0.1;
+    sig = LFTri.ar(freq) * env * 0.4;
 };
 ~bass.play;
 
@@ -187,6 +185,7 @@ Pdef(\kickPattern,
 
 // Controlar revelación con melodía
 ~melody_note[0] = { LFNoise1.kr(0.2).range(0.6, 1.0) };
+
 // Añadir ondulación con textura
 ~texture_level[0] = { LFNoise1.kr(0.3).range(0.2, 0.5) };
 
@@ -210,21 +209,21 @@ Pdef(\kickPattern).set(\dur, 4);
 fork {
     20.wait;
     "🔽 Iniciando decay...".postln;
-
+    
     // Fade out de erosión
     ~bass_level[0] = { Line.kr(0.75, 0, 15) };
-
+    
     // Fade out de ondulación
     ~texture_level[0] = { Line.kr(0.6, 0, 15) };
-
+    
     // Detener kicks
     5.wait;
     Pdef(\kickPattern).stop;
-
+    
     // Fade out de melodía
     10.wait;
     ~melody_note[0] = { Line.kr(1.0, 0.5, 10) };
-
+    
     "✅ Decay completado - Listo para DUALISMOS".postln;
 };
 )
@@ -243,7 +242,7 @@ fork {
 ~ambient.stop(8);
 ~wind.stop(8);
 ~bass.stop(4);
-~melody.stop(4);1
+~melody.stop(4);
 
 // Kick pattern más lento para palabras
 (
@@ -251,9 +250,8 @@ Pdef(\dualKicks,
     Pbind(
         \type, \osc,
         \addr, topEnvironment[\hydraAddr],
-		\note, Pxrand([1,3,4,8],inf),
         \oscPath, "/kick",
-        \dur, 0.25, // Cada 6 beats
+        \dur, 6, // Cada 6 beats
     )
 ).play;
 )
@@ -264,7 +262,7 @@ Pdef(\dualKicks,
 ~dualBass[0] = {
     var sig, env;
     env = EnvGen.kr(Env.perc(0.001, 0.4), Impulse.kr(1));
-    sig = SinOsc.ar(60 * env.exprange(1, 8)) * env * 0.1;
+    sig = SinOsc.ar(60 * env.exprange(1, 8)) * env * 0.4;
     sig ! 2;
 };
 ~dualBass.play;
@@ -315,7 +313,7 @@ Pdef(\dualKicks).set(\dur, 4);
     var sig, freq;
     freq = Duty.kr(2, 0, Dseq([72, 75, 79, 77, 75, 72].midicps, inf));
     sig = Pulse.ar(freq, 0.5) * 0.15;
-    sig = RLPF.ar(sig, freq * 4, 0.1);
+    sig = RLPF.ar(sig, freq * 4, 0.3);
     sig ! 2;
 };
 ~dualMelody.play;
@@ -340,20 +338,20 @@ Pdef(\dualKicks).set(\dur, 2);
 fork {
     20.wait;
     "🔽 Fade out final...".postln;
-
+    
     // Detener kicks
     Pdef(\dualKicks).stop;
-
+    
     // Fade de efectos
     ~bass_level[0] = { Line.kr(0.8, 0, 10) };
     ~texture_level[0] = { Line.kr(0.7, 0, 10) };
     ~melody_note[0] = { Line.kr(0.9, 0, 10) };
-
+    
     // Fade de audio
     ~dualBass.stop(6);
     ~hats.stop(6);
     ~dualMelody.stop(8);
-
+    
     10.wait;
     "✅ SESIÓN FINALIZADA".postln;
 };

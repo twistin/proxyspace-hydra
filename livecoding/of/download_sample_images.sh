@@ -37,4 +37,3 @@ echo "📁 Imágenes guardadas en: $LANDSCAPE_DIR"
 echo ""
 echo "Tip: Puedes reemplazar estas imágenes con tus propios paisajes/lugares"
 echo "     Solo arrastra tus imágenes JPG/PNG a la carpeta landscapes/"
-# ...existing code...

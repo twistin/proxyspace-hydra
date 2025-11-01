@@ -366,7 +366,7 @@ Mientras el sistema corre, puedes usar estas teclas en la ventana de openFramewo
 **Solución:**
 
 ```bash
-cd hydra
+cd osc-proxy
 npm install osc ws
 ```
 

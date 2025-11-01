@@ -18,7 +18,7 @@ Guía para preparar sesiones profesionales de live coding combinando SuperCollid
 ```
 
 1. SuperCollider genera audio y publica datos por OSC (`/sc/rhythm`, `/sc/bass`, etc.).
-2. Un proxy Node.js (`hydra/osc_ws_proxy.js`) traduce OSC a WebSocket.
+2. Un proxy Node.js (`osc-proxy/osc_ws_proxy.js`) traduce OSC a WebSocket.
 3. Los patches Hydra escuchan esos datos vía `createOSCBridge` y adaptan visuales (ver `templates/hydra/base_template.html`).
 4. Opcionalmente, controles MIDI u OSC adicionales pueden modificar ambos lados.
 
@@ -50,7 +50,7 @@ Documenta este diccionario al inicio de tu set y ajusta los rangos según tu mez
 
 ### 3.2 Preparación de visuales (Hydra)
 
-1. Carga `hydra/js/osc-client.js` en tus HTML.
+1. Carga `osc-proxy/js/osc-client.js` en tus HTML.
 2. Define `const bridge = createOSCBridge({...})` con todos los endpoints.
 3. Crea funciones utilitarias `const rhythm = () => bridge.getValue('rhythm', 0.1)`. 
 4. Construye capas Hydra (shape, osc, noise, voronoi) modulando con esas funciones.

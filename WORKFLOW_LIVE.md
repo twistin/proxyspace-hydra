@@ -292,6 +292,6 @@ SC_OSC_PORT=57122 npm run proxy
 - `scd/sound2.scd` → Setup OSC + ejemplos de audio
 - `scd/test_landscapes.scd` → Tests de LANDSCAPES
 - `of/src/ofApp.cpp` → Código visual (si necesitas ajustar)
-- `hydra/osc_ws_proxy.js` → Proxy OSC
+- `osc-proxy/osc_ws_proxy.js` → Proxy OSC
 
 **¡Suerte en la sesión! 🎵🎨**

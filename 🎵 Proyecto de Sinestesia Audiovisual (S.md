@@ -22,7 +22,7 @@ El flujo de datos atraviesa los siguientes componentes:
 | Componente | Archivo | Función | Puerto |
 |------------|---------|---------|--------|
 | **Generador de Audio** | `scd/sound2.scd` | ProxySpace con audio reactivo y envío OSC | → 57122 |
-| **Proxy (Puente)** | `hydra/osc_ws_proxy.js` | Recibe OSC y reenvía a WebSocket + openFrameworks | 57122 (OSC in)<br>8080 (WS out)<br>12345 (OSC out) |
+| **Proxy (Puente)** | `osc-proxy/osc_ws_proxy.js` | Recibe OSC y reenvía a WebSocket + openFrameworks | 57122 (OSC in)<br>8080 (WS out)<br>12345 (OSC out) |
 | **Visuales Nativos** | `of/src/ofApp.cpp` | Sistema de escenas con imágenes y texto | 12345 (OSC in) |
 | **Visuales Web** | `hydra/hydra_client*.html` | Síntesis visual GLSL en navegador | 8080 (WS in) |
 

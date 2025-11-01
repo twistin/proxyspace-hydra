@@ -63,16 +63,16 @@ Reactiva la palabra:
 
 class ofApp : public ofBaseApp {
 public:
-	void setup();
-	void update();
-	void draw();
-	void keyPressed(int key);
+    void setup();
+    void update();
+    void draw();
+    void keyPressed(int key);
 
-	// Lista de palabras
-	vector<WordInstance> words;
+    // Lista de palabras
+    vector<WordInstance> words;
     
-	// Fuente para renderizar
-	ofTrueTypeFont font;
+    // Fuente para renderizar
+    ofTrueTypeFont font;
 };
 ```
 
@@ -81,70 +81,70 @@ public:
 #include "ofApp.h"
 
 void ofApp::setup() {
-	ofSetFrameRate(60);
-	ofBackground(0);
+    ofSetFrameRate(60);
+    ofBackground(0);
     
-	// Cargar fuente
-	font.load("fonts/verdana.ttf", 48, true, true);
-	font.setLetterSpacing(1.037);
+    // Cargar fuente
+    font.load("fonts/verdana.ttf", 48, true, true);
+    font.setLetterSpacing(1.037);
     
-	// Crear una palabra de ejemplo
-	WordInstance word;
-	word.setup(
-		"DEVENIR",                        // texto
-		ofPoint(ofGetWidth()/2, ofGetHeight()/2), // posición centrada
-		1.5f,                             // tamaño inicial
-		ofColor(255, 100, 200),          // color rosa
-		180.0f                            // vida: 3 segundos a 60fps
-	);
-	words.push_back(word);
+    // Crear una palabra de ejemplo
+    WordInstance word;
+    word.setup(
+        "DEVENIR",                        // texto
+        ofPoint(ofGetWidth()/2, ofGetHeight()/2), // posición centrada
+        1.5f,                             // tamaño inicial
+        ofColor(255, 100, 200),          // color rosa
+        180.0f                            // vida: 3 segundos a 60fps
+    );
+    words.push_back(word);
 }
 
 void ofApp::update() {
-	// Actualizar todas las palabras
-	for (auto &word : words) {
-		word.update();
-	}
+    // Actualizar todas las palabras
+    for (auto &word : words) {
+        word.update();
+    }
     
-	// Eliminar palabras muertas
-	words.erase(
-		std::remove_if(words.begin(), words.end(),
-			[](WordInstance &w) { return w.isDead(); }),
-		words.end()
-	);
+    // Eliminar palabras muertas
+    words.erase(
+        std::remove_if(words.begin(), words.end(),
+            [](WordInstance &w) { return w.isDead(); }),
+        words.end()
+    );
 }
 
 void ofApp::draw() {
-	// Dibujar todas las palabras
-	for (auto &word : words) {
-		word.draw(font);
-	}
+    // Dibujar todas las palabras
+    for (auto &word : words) {
+        word.draw(font);
+    }
     
-	// Info en pantalla
-	ofSetColor(255);
-	ofDrawBitmapString("Palabras activas: " + ofToString(words.size()), 20, 20);
+    // Info en pantalla
+    ofSetColor(255);
+    ofDrawBitmapString("Palabras activas: " + ofToString(words.size()), 20, 20);
 }
 
 void ofApp::keyPressed(int key) {
-	if (key == ' ') {
-		// Trigger: reactivar todas las palabras con nuevo tamaño
-		for (auto &word : words) {
-			word.trigger(2.0f + ofRandom(1.0f));
-		}
-	}
+    if (key == ' ') {
+        // Trigger: reactivar todas las palabras con nuevo tamaño
+        for (auto &word : words) {
+            word.trigger(2.0f + ofRandom(1.0f));
+        }
+    }
     
-	if (key == 'n') {
-		// Crear nueva palabra en posición aleatoria
-		WordInstance newWord;
-		newWord.setup(
-			"PALABRA",
-			ofPoint(ofRandom(ofGetWidth()), ofRandom(ofGetHeight())),
-			1.2f,
-			ofColor(ofRandom(255), ofRandom(255), ofRandom(255)),
-			120.0f
-		);
-		words.push_back(newWord);
-	}
+    if (key == 'n') {
+        // Crear nueva palabra en posición aleatoria
+        WordInstance newWord;
+        newWord.setup(
+            "PALABRA",
+            ofPoint(ofRandom(ofGetWidth()), ofRandom(ofGetHeight())),
+            1.2f,
+            ofColor(ofRandom(255), ofRandom(255), ofRandom(255)),
+            120.0f
+        );
+        words.push_back(newWord);
+    }
 }
 ```
 
@@ -185,17 +185,17 @@ oscReceiver.setup(12345);
 
 // En ofApp::update()
 while (oscReceiver.hasWaitingMessages()) {
-	ofxOscMessage msg;
-	oscReceiver.getNextMessage(msg);
+    ofxOscMessage msg;
+    oscReceiver.getNextMessage(msg);
     
-	if (msg.getAddress() == "/kick") {
-		float value = msg.getArgAsFloat(0);
+    if (msg.getAddress() == "/kick") {
+        float value = msg.getArgAsFloat(0);
         
-		// Trigger todas las palabras con intensidad según valor OSC
-		for (auto &word : words) {
-			word.trigger(1.0f + value * 2.0f);
-		}
-	}
+        // Trigger todas las palabras con intensidad según valor OSC
+        for (auto &word : words) {
+            word.trigger(1.0f + value * 2.0f);
+        }
+    }
 }
 ```
 
@@ -230,4 +230,3 @@ Añade los archivos al proyecto openFrameworks:
 2. Implementar posicionamiento dinámico (columnas, grids)
 3. Añadir efectos de partículas o trails
 4. Integrar con el flujo OSC completo desde SuperCollider
-

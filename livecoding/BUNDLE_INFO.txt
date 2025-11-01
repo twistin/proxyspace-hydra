@@ -1,20 +1,27 @@
-BUNDLE DE LIVE CODING - Estructura mínima para sesión
+BUNDLE DE LIVE CODING · RESUMEN
 
-Carpetas incluidas:
+Contenido esencial:
 
-- setup/: archivos SuperCollider esenciales (Setup.scd, Snippets.scd, synthdefs.scd, patrones.scd, sample-audition.scd, Setup-2.scd, I Ching.scd)
-- samples/: estructura para samples de audio (audio/, set1/, set1lfx/)
-- sesiones/: ejemplo de sesión (2024-10-29_ejemplo_completo.scd)
-- of/: proyecto openFrameworks completo listo para compilar
-  - src/: main.cpp, ofApp.cpp, ofApp.h
-  - bin/data/landscapes/: README.md (agrega tus imágenes)
-  - otros archivos de configuración y utilidades
+- `start_live_session.sh` · script maestro (proxy + oF + SuperCollider).
+- `setup/` · Setup.scd, Snippets, SynthDefs, patrones, sample-audition, I Ching…
+- `samples/` · estructura mínima para sets (audio/, set1/, set1lfx/).
+- `sesiones/` · plantillas de show (`_TEMPLATE_SESION.scd`, `2024-10-29_ejemplo_completo.scd`, `2025-10-29_landscapes.scd`, etc.).
+- `osc-proxy/` · proxy Node.js listo con package.json y tests.
+- `of/` · proyecto openFrameworks:
+  - `src/` (main.cpp, ofApp.cpp/h, WordInstance.cpp/h),
+  - `bin/data/landscapes/` con README,
+  - `of.xcodeproj`, Makefile, config.make.
 
-Instrucciones:
-1. Agrega tus samples de audio en samples/audio/ o set1/ según tu set.
-2. Agrega imágenes en of/bin/data/landscapes/.
-3. Abre y compila el proyecto oF en Xcode o make.
-4. Abre los archivos .scd en SuperCollider y ejecuta Setup.scd.
-5. Usa los archivos de sesiones como plantilla para tus lives.
+Primeros pasos:
+1. Coloca tus samples en `samples/` (ajusta `~samplesRelative` en `sound2.scd` si cambias rutas).
+2. Añade imágenes en `of/bin/data/landscapes/`.
+3. Desde esta carpeta ejecuta `./start_live_session.sh`.
+4. En SuperCollider evalúa la plantilla y lanza `SoundSessionStartAll.();`.
+5. Inicia el patrón base con `SoundSessionPlay.();` y toca tu set.
 
-¡Listo para tocar en vivo con la estructura más limpia y portable!
+Notas:
+- El proxy Node detecta `/kick`, `/bass_level`, `/melody_note` y los reenvía a openFrameworks e Hydra.
+- `sound2.scd` contiene la lógica de análisis multibanda y helpers para arrancar/limpiar.
+- Si `of/bin/ofDebug.app` no existe, compila el proyecto oF una vez con Xcode o make.
+
+Este bundle está listo para copiarse a otra máquina y tener el mismo entorno de live coding en minutos.

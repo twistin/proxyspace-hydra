@@ -32,6 +32,13 @@ public:
     void drawLandscapes();
     void drawDualismos();
     
+private:
+    void ensureLandscapeBuffers();
+    void updateLandscapeTransition(float deltaSeconds);
+    void updateLandscapeMesh(float drawWidth, float drawHeight, float imgWidth, float imgHeight, float originX, float originY);
+    void updateFeedbackBuffer();
+    void drawLandscapeToFbo(const ofImage& img, float drawWidth, float drawHeight, float originX, float originY, float alpha);
+    
     // Función para crear nuevo par de dualidades
     void spawnNewPair();
     
@@ -53,8 +60,6 @@ public:
     // Imágenes para escena Landscapes
     std::vector<ofImage> landscapeImages;
     int currentLandscapeIndex;
-    float landscapeAlpha;
-    float targetLandscapeAlpha;
     
     // LANDSCAPES: Variables para efectos sonoros reactivos
     float imageReveal;         // Revelación progresiva (0-1, de oscuro a visible)
@@ -79,6 +84,17 @@ public:
     float chromaShift;         // Desplazamiento cromático
     ofFbo feedbackFbo;         // Para efecto de feedback/rastro
     bool feedbackInit;         // Si el FBO está inicializado
+    ofFbo landscapeFbo;        // FBO principal de la escena Landscapes
+    ofImage previousLandscape; // Imagen anterior para transiciones
+    bool hasPreviousLandscape;
+    bool transitionActive;
+    float transitionProgress;
+    float transitionDuration;
+    float landscapeTime;       // Acumulador temporal
+    ofMesh landscapeMesh;      // Malla deformable
+    std::vector<glm::vec3> baseMeshVertices;
+    int meshColumns;
+    int meshRows;
     
     // DUALISMOS: Variables para contraste rítmico
     float wordSizeMultiplier;  // Multiplicador de tamaño de palabras

@@ -12,7 +12,7 @@ SuperCollider → OSC (UDP 57121) → Node Proxy → WebSocket 8080 → Hydra (b
 proxyspace-hydra/
 ├─ docs/
 │  └─ live-coding-playbook.md    # Estrategias ampliadas para sets híbridos
-├─ hydra/
+├─ osc-proxy/
 │  ├─ js/osc-client.js           # Cliente WebSocket con smoothing y reconexión
 │  ├─ osc_ws_proxy.js            # Proxy OSC ↔ WS en Node.js (única versión soportada)
 │  ├─ package.json               # Dependencias (osc, ws) y scripts npm
@@ -39,15 +39,17 @@ proxyspace-hydra/
 ## Instalación rápida
 
 ```bash
-cd hydra
+cd osc-proxy
 npm install
 ```
 
 ## Puesta en marcha básica
 
+- **Todo junto**: ejecuta `./start_live_session.sh` para lanzar proxy OSC, abrir el proyecto oF y cargar la plantilla SuperCollider (`scd/sound2.scd`). Dentro de SC evalúa el archivo y corre `SoundSessionStartAll.();`.
+
 1. **Proxy OSC → WS + HTTP** (OSC 57121, WebSocket/HTTP 8080 por defecto):
    ```bash
-   cd hydra
+   cd osc-proxy
    npm run proxy
    ```
    Variables útiles:
@@ -66,7 +68,7 @@ npm install
 
    Cada script guarda `topEnvironment[\hydraAddr]` y limpia `OSCdef`/Synths con `CmdPeriod.doOnce`.
 
-3. **Visuales Hydra**: con el proxy en marcha visita `http://localhost:8080/templates/hydra/base_template.html` (o la página que definas con `HYDRA_INDEX`). El servidor Node expone automáticamente `templates/`, `images/` y `hydra/`, evitando los bloqueos CORS cuando se usan texturas locales.
+3. **Visuales Hydra**: con el proxy en marcha visita `http://localhost:8080/templates/hydra/base_template.html` (o la página que definas con `HYDRA_INDEX`). El servidor Node expone automáticamente `templates/`, `images/` y `osc-proxy/`, evitando los bloqueos CORS cuando se usan texturas locales.
 
    El HUD refleja estado del bridge y valores `/sc/rhythm`, `/sc/bass`, `/sc/high`; `bridge.on('scene')` conmuta entre las escenas:
    - `0 · Lienzo base`: texturas geométricas moduladas por ritmo/bajos.

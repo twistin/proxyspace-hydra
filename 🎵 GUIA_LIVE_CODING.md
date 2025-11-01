@@ -177,4 +177,55 @@ proxyspace-hydra/
 
 ---
 
+## 🚦 PASOS EXPLÍCITOS PARA ARRANCAR openFrameworks
+
+1. **Abre una terminal** y navega a la carpeta del proxy:
+   ```sh
+   cd /Users/sdcarr/Desktop/proxyspace-hydra/hydra
+   ```
+2. **Inicia el socket/proxy OSC** (asegúrate de que el puerto SC_OSC_PORT sea el correcto):
+   ```sh
+   SC_OSC_PORT=57122 node osc_ws_proxy.js
+   ```
+   - Si usas otro script de arranque, ejecútalo aquí (por ejemplo, `./start_proxy.sh`).
+3. **Abre otra terminal** y navega a la carpeta de openFrameworks:
+   ```sh
+   cd /Users/sdcarr/Desktop/proxyspace-hydra/of
+   ```
+4. **Compila el proyecto** (si usas Makefile):
+   ```sh
+   make
+   ```
+   - O abre el proyecto en Xcode y compila con Cmd+B.
+5. **Ejecuta la app** (si usas Makefile):
+   ```sh
+   ./bin/ofDebug.app/Contents/MacOS/ofDebug
+   ```
+   - O ejecuta desde Xcode con Cmd+R.
+6. **Verifica que la ventana de oF esté abierta** y lista para recibir OSC.
+7. **Abre SuperCollider** y ejecuta tu plantilla de sesión (que cargue Setup, Snippets, synthdefs, etc.).
+8. **¡Listo!** Cambia escenas con las teclas `1` y `2` en la ventana de oF y controla todo desde SuperCollider.
+
+---
+
+## 🪟 ¿CUÁNTAS VENTANAS/TERMINALES DEBO ABRIR?
+
+Para un flujo de trabajo típico necesitas:
+
+1. **Una terminal** para el proxy OSC (socket):
+   - Ejecuta: `SC_OSC_PORT=57122 node osc_ws_proxy.js` (o tu script de arranque)
+2. **Una terminal** para compilar/ejecutar openFrameworks:
+   - Ejecuta: `make` y luego `./bin/ofDebug.app/Contents/MacOS/ofDebug` (o usa Xcode)
+3. **SuperCollider** abierto (ventana de la app, no terminal)
+   - Abre tu archivo de sesión y ejecuta el setup
+
+**Opcional:**
+- Una terminal extra para logs, monitoreo de puertos, o reiniciar procesos rápidamente.
+
+> **Resumen:**
+> - 2 terminales (proxy + oF)
+> - 1 ventana de SuperCollider
+
+---
+
 ¡Listo para tu live coding! 🎉
